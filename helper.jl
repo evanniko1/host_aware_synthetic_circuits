@@ -114,23 +114,21 @@ Returns two vectors:
 
 Created by Evangelos-Marios Nikolados.
 """
-function trans_initiation!(; init_values, tspan, params_values, range_size=10, kini_lower=-0.65, kini_upper=0)
+function trans_initiation!(; ode_problem_dict, range_size=10, kini_lower=-0.65, kini_upper=0)
 
     phet_sols, grate_sols = [], []
     
     for (idx, kappa_ini) in enumerate(exp10.(range(kini_lower, kini_upper, length=range_size)))
         # update kappa_ini value
-        p[end] = kappa_ini
+		ode_problem_dict["parameters"][end] = kappa_ini
     
         # define & solve the new ODE problem
 		sol = solve_ode_problem!(model_def = ODE_model!, ode_problem_wrap = ode_problem_dict)
 
-        # calculate growth rate
-        #ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
-        #grate = ttrate / M
-		grate = calc_growth_rate!(sol = sol, kappa_ini = kappa_ini, gmax = gmax, Kgamma = Kgamma)
+		# calculate relevant rates
+		_, grate = calc_growth_rate!(sol = sol, kappa_ini = kappa_ini, gmax = gmax, Kgamma = Kgamma)
 		het_expr = calc_het_expr!(sol = sol)
-		
+
         # push what we need
         push!(phet_sols, het_expr)
         push!(grate_sols, grate)
@@ -142,6 +140,7 @@ end
 function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8)
 	ttrate = ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
 	grate = ttrate / M
+	
 	return ttrate, grate
 end
 
