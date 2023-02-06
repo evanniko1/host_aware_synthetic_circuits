@@ -3,37 +3,37 @@ using DifferentialEquations
 using Plots
 
 # import custom stuff
+include("values.jl")
 include("helper.jl")
 
+# init plotly
+plotly();
+
+# time span
+tspan = (0.0, 1e5)
 ##########
 # exposed relevant parameters
 ns = 0.5
-kurep= exp10(−2.6575) #default value is *1*
-kbrep= exp10(−1.3335) #default value is *0.0095*
+kurep = exp10(-2.6575)
+kbrep = exp10(-1.3335)
 wmaxrep = 150
 kappa_ini = 0.1
+# oganize in a vector
+het_p = [ns, wmaxrep, kbrep, kurep, dmrep, dprep, kappa_ini]
 
-# assemble in a parameter vector
-p= [thetar, k_cm, s0, gmax, cl, 
-	thetax, Kt, M, we, Km, 
-	vm, nx, Kq, Kp, vt, 
-	wr, wq, wp, nq, nr, 
-	ns, wmaxrep, kbrep, kurep, dmrep, dprep, kappa_ini]
+# assemble into single parameter vector
+append!(p, het_p)
+
+ode_problem_dict = create_problem_dict!(init_values = u0, params_values = p, tspan = tspan)
 
 ##########
 # one run of the model
-# time span
-tspan = (0.0, 1e5)
+solve_once = solve_ode_problem!(model_def = ODE_model!, ode_problem_wrap = ode_problem_dict)
 
-# specify ODE problem
-prob = ODEProblem(ODE_model!,u0,tspan,p)
-
-# solve ODE problem
-sol = solve(prob,Rodas4())
-plotly();
-plot(sol) # time trajectories for all species; the plot is interactive
+# specify and solve ODE problem
+plot(solve_once) # time trajectories for all species; the plot is interactive
 
 ##########
 # reproduce the non-linear relationship from Cambray et al, 2018
-phet, grate = trans_initiation!(init_values = u0, tspan = (0,1e5), params_values = p);
-plot(phet, grate)
+#phet, grate = trans_initiation!(init_values = u0, tspan = (0,1e5), params_values = p);
+#plot(phet, grate)

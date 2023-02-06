@@ -1,31 +1,10 @@
-# parameter values
-thetar= 426.8693338968694
-k_cm= 0.005990373118888
-s0= 10000
-gmax= 1260.0
-cl= 0
-thetax= 4.379733394834643
-Kt= 1.0e3
-M= 1.0e8
-we= 4.139172187824451
-Km= 1000
-vm= 5800.0
-nx= 300.0
-Kq= 1.522190403737490e+05
-Kp= 180.1378030928276
-vt= 726.0
-wr= 929.9678874564831
-wq= 948.9349882947897
-wp= 0.0
-nq= 4
-nr= 7549.0
-dmrep= log(2)/2
-dprep= log(2)/4
-Kgamma= gmax/Kp
+function create_problem_dict!(; init_values, params_values, tspan)
+	ode_problem_wrap = Dict("initial_conditions" => init_values,
+							"parameters" => params_values,
+							"time_span"  => tspan)
+	return ode_problem_wrap
+end
 
-# base model steady state values
-# vector's three last values are protein, mRNA, and ribosomal complex ss values respectively
-u0 = [807.530517658162,7066.62814403594,2316.16746788774,69.1538861165317,7066.62758622631,69.1538892849256,9.64096853393699,9.64097064704617,236681.293193619,128.404551112062,322.904581569518,5.94267303259607,17.3282796528522,9.17329183561663,0,0,0]
 
 """
     ODE_model!(du,u,p,t)
@@ -144,16 +123,16 @@ function trans_initiation!(; init_values, tspan, params_values, range_size=10, k
         p[end] = kappa_ini
     
         # define & solve the new ODE problem
-        prob = ODEProblem(ODE_model!, init_values, tspan, params_values)
-        sol = solve(prob, Rodas4())
-    
+		sol = solve_ode_problem!(model_def = ODE_model!, ode_problem_wrap = ode_problem_dict)
+
         # calculate growth rate
         #ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
         #grate = ttrate / M
-		grate = calc_growth_rate(sol = sol, kappa_ini = kappa_ini, gmax = gmax, Kgamma = Kgamma)
-    
+		grate = calc_growth_rate!(sol = sol, kappa_ini = kappa_ini, gmax = gmax, Kgamma = Kgamma)
+		het_expr = calc_het_expr!(sol = sol)
+		
         # push what we need
-        push!(phet_sols, sol[end][15])
+        push!(phet_sols, het_expr)
         push!(grate_sols, grate)
     end
 
@@ -164,4 +143,15 @@ function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8)
 	ttrate = ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
 	grate = ttrate / M
 	return ttrate, grate
+end
+
+function calc_het_expr!(; sol)
+	return sol[end][15]
+end
+
+function solve_ode_problem!(; model_def, ode_problem_wrap, solver = Rodas4())
+	prob = ODEProblem(model_def, ode_problem_wrap["initial_conditions"], ode_problem_wrap["time_span"], ode_problem_wrap["parameters"])
+	sol = solve(prob, solver)
+
+	return sol
 end
