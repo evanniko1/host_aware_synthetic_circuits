@@ -102,6 +102,24 @@ function ODE_model!(du,u,p,t)
     du[17]= -lam*rmrep + kbrep*r*mrep - (1-kappa_ini)*kurep*rmrep - vrep
 end
 
+function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8)
+	ttrate = ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
+	grate = ttrate / M
+	
+	return ttrate, grate
+end
+
+function calc_het_expr!(; sol)
+	return sol[end][15]
+end
+
+function solve_ode_problem!(; model_def, ode_problem_wrap, solver = Rodas4())
+	prob = ODEProblem(model_def, ode_problem_wrap["initial_conditions"], ode_problem_wrap["time_span"], ode_problem_wrap["parameters"])
+	sol = solve(prob, solver)
+
+	return sol
+end
+
 """
     trans_initiation!(; init_values, tspan, params_values, range_size=10, kini_lower=-0.65, kini_upper=0)
 
@@ -114,7 +132,7 @@ Returns two vectors:
 
 Created by Evangelos-Marios Nikolados.
 """
-function trans_initiation!(; ode_problem_dict, range_size=10, kini_lower=-0.65, kini_upper=0)
+function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.65, kini_upper = 0)
 
     phet_sols, grate_sols = [], []
     
@@ -137,20 +155,54 @@ function trans_initiation!(; ode_problem_dict, range_size=10, kini_lower=-0.65, 
     return phet_sols, grate_sols
 end
 
-function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8)
-	ttrate = ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
-	grate = ttrate / M
-	
-	return ttrate, grate
+########
+# NEW #
+########
+
+# abstract parameter perturbations to avoid redundant code
+function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size)
+	# initialize phenotype, growth rate, and total translation rate result vectors
+    phet_sols, grate_sols, ttrate_sols = [], [], []
+    
+    for (_, param_to_perturb) in enumerate(exp10.(range(range_bounds[1], range_bounds[2], length=range_size)))
+        # update value for parameter
+		ode_problem_dict["parameters"][param_index] = param_to_perturb
+    
+        # define & solve the new ODE problem
+		sol = solve_ode_problem!(model_def = ODE_model!, ode_problem_wrap = ode_problem_dict)
+
+		# calculate relevant rates
+		ttrate, grate = calc_growth_rate!(sol = sol, kappa_ini = param_to_perturb, gmax = gmax, Kgamma = Kgamma)
+		het_expr = calc_het_expr!(sol = sol)
+
+        # push what we need
+        push!(phet_sols, het_expr)
+        push!(grate_sols, grate)
+		push!(ttrate_sols, ttrate)
+    end
+
+    return phet_sols, grate_sols, ttrate_sols
 end
 
-function calc_het_expr!(; sol)
-	return sol[end][15]
+function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_outer, range_bounds_inner, range_bounds_outer, range_size = 10)
+	# initialize phenotype, growth rate, and total translation rate result vectors
+	phet_sols, grate_sols, ttrate_sols = [], [], []
+
+	for (_, outer_param_to_perturb) in enumerate(exp10.(range(range_bounds_outer[1], range_bounds_outer[2], length = range_size)))
+		# update value for outer parameter loop
+		ode_problem_dict["parameters"][param_index_outer] = outer_param_to_perturb
+
+		# INNER LOOP
+		phet_pert_one, grate_pert_one, ttrate_pert_one = perturb_one_param!(ode_problem_dict = ode_problem_dict, param_index = param_index_inner, range_bounds = range_bounds_inner, range_size = range_size)
+        
+		# push what we need
+        push!(phet_sols, phet_pert_one)
+        push!(grate_sols, grate_pert_one)
+		push!(ttrate_sols, ttrate_pert_one)
+	end
+
+	return phet_sols, grate_sols, ttrate_sols
 end
 
-function solve_ode_problem!(; model_def, ode_problem_wrap, solver = Rodas4())
-	prob = ODEProblem(model_def, ode_problem_wrap["initial_conditions"], ode_problem_wrap["time_span"], ode_problem_wrap["parameters"])
-	sol = solve(prob, solver)
-
-	return sol
-end
+# utils functions zone 
+# focus mostly on formatting for plotting
