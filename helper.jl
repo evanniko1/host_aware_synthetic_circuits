@@ -155,12 +155,21 @@ function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.
     return phet_sols, grate_sols
 end
 
-########
-# NEW #
-########
-
 # abstract parameter perturbations to avoid redundant code
-function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size)
+"""
+	perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size)
+
+Helper function to perturb a single parameter of the model. Parameter index specifies the parameter to perturb,
+range bounds are then log10() transformed, and range_size specifies log-spaced sampling steps.
+
+Returns three vectors:
+     i.   heterologous protein expression
+     ii.  growth rate
+	 iii. total translation rate
+
+Created by Evangelos-Marios Nikolados.
+"""
+function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size=10)
 	# initialize phenotype, growth rate, and total translation rate result vectors
     phet_sols, grate_sols, ttrate_sols = [], [], []
     
@@ -184,6 +193,19 @@ function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range
     return phet_sols, grate_sols, ttrate_sols
 end
 
+"""
+	perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_outer, range_bounds_inner, range_bounds_outer, range_size)
+
+Helper function to perturb two parameters of the model. Parameter index specifies the parameter to perturb, for inner and outer loop respectively,
+range bounds are then log10() transformed, for inner and outer ranges respectively, and range_size specifies log-spaced sampling steps.
+
+Returns three vectors:
+     i.   heterologous protein expression
+     ii.  growth rate
+	 iii. total translation rate
+
+Created by Evangelos-Marios Nikolados.
+"""
 function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_outer, range_bounds_inner, range_bounds_outer, range_size = 10)
 	# initialize phenotype, growth rate, and total translation rate result vectors
 	phet_sols, grate_sols, ttrate_sols = [], [], []
@@ -204,5 +226,10 @@ function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_
 	return phet_sols, grate_sols, ttrate_sols
 end
 
+########
+# NEW #
+########
+
 # utils functions zone 
-# focus mostly on formatting for plotting
+# current index-based functions for perturbations are dependent on remembering proper species mappings -- mieh
+# plotting functions -- definitely need some generic formatting utils
