@@ -1,12 +1,14 @@
 #### TO-DO: 
-# ModelingToolkit.jl implementation -- DONE
-# solve and check steady state solution -- DONE
-# explore optimization with Jacobian -- DONE
-#   1. several bits to check from documentation (?)
-# explore connected systems 
-#   1. simplify growth model into blocks
-#   2. if i. == true, then examine host-circuit extentions
-#   problems :: how to update shared resources ODEs ??
+# 1. ModelingToolkit.jl implementation -- DONE
+# 2. solve and check steady state solution -- DONE
+# 3. explore optimization with Jacobian -- DONE
+#    1. several bits to check from documentation (?)
+# 4. explore connected systems 
+#    1. simplify growth model into blocks
+#    2. if 4.1 == true, then examine host-circuit extensions
+#    -- problems :: how to update shared resources ODEs ??
+# 5. explore structural simplifications to build -if applicable- the leanest numerical representation of the system
+# 6. is it possible to build a DAE version of the model?
 
 
 # import packages
@@ -23,11 +25,12 @@ include("test_code.jl")
 @variables rmr(t) em(t) rmq(t) rmt(t) et(t) rmm(t) mt(t) mm(t) q(t) si(t) mq(t) mr(t) r(t) a(t) 
 D = Differential(t)
 
+# variables of type Num
 Kgamma= gmax/Kp
 gamma= gmax*a/(Kgamma + a)
 ttrate= (rmq + rmr + rmt + rmm)*gamma
 lam= ttrate/M 
-nucat= em*vm*si/(Km + si) 
+nucat= em*vm*si/(Km + si)
 
 eqs = [
     D(rmr) ~ kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr
