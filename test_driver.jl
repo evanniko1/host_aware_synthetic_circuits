@@ -1,64 +1,54 @@
-#### TO-DO: ModelingToolkit.jl implementation
-# implementation
-# solve and check steady state solution
-# explore optimization with Jacobian
-# explore connected systems
-#   i.  simplify growth model into blocks
-#   ii. if i. == true, then examine host-circuit extentions
+#### TO-DO: 
+# ModelingToolkit.jl implementation -- DONE
+# solve and check steady state solution -- DONE
+# explore optimization with Jacobian -- DONE
+#   1. several bits to check from documentation (?)
+# explore connected systems 
+#   1. simplify growth model into blocks
+#   2. if i. == true, then examine host-circuit extentions
 #   problems :: how to update shared resources ODEs ??
 
 
 # import packages
+using ModelingToolkit
 using DifferentialEquations
 using Plots
+plotly()
 
 include("test_code.jl")
 
-prob = ODEProblem(base_model_ODE!, base_model_ss_values, (0, 1e4), base_model_parameters)
+###################
+# ModelingToolkit implementation
+@parameters t thetar k_cm s0 gmax thetax Kt M we Km vm nx Kq Kp vt wr wq wp nq nr dm kb ku ns
+@variables rmr(t) em(t) rmq(t) rmt(t) et(t) rmm(t) mt(t) mm(t) q(t) si(t) mq(t) mr(t) r(t) a(t) 
+D = Differential(t)
+
+Kgamma= gmax/Kp
+gamma= gmax*a/(Kgamma + a)
+ttrate= (rmq + rmr + rmt + rmm)*gamma
+lam= ttrate/M 
+nucat= em*vm*si/(Km + si) 
+
+eqs = [
+    D(rmr) ~ kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr
+    D(em) ~ gamma/nx*rmm-lam*em
+    D(rmq) ~ kb*r*mq-ku*rmq-gamma/nx*rmq-lam*rmq
+    D(rmt) ~ kb*r*mt-ku*rmt-gamma/nx*rmt-lam*rmt
+    D(et) ~ gamma/nx*rmt-lam*et
+    D(rmm) ~ kb*r*mm-ku*rmm-gamma/nx*rmm-lam*rmm
+    D(mt) ~ (we*a/(thetax + a))+ku*rmt+gamma/nx*rmt-kb*r*mt-dm*mt-lam*mt
+    D(mm) ~ (we*a/(thetax + a))+ku*rmm+gamma/nx*rmm-kb*r*mm-dm*mm-lam*mm
+    D(q) ~ gamma/nx*rmq-lam*q
+    D(si) ~ (et*vt*s0/(Kt + s0))-nucat-lam*si
+    D(mq) ~ (wq*a/(thetax + a)/(1 + (q/Kq)^nq))+ku*rmq+gamma/nx*rmq-kb*r*mq-dm*mq-lam*mq
+    D(mr) ~ (wr*a/(thetar + a))+ku*rmr+gamma/nr*rmr-kb*r*mr-dm*mr-lam*mr
+    D(r) ~ ku*rmr+ku*rmt+ku*rmm+ku*rmq+gamma/nr*rmr+gamma/nr*rmr+gamma/nx*rmt+gamma/nx*rmm+gamma/nx*rmq-kb*r*mr-kb*r*mt-kb*r*mm-kb*r*mq-lam*r
+    D(a) ~ ns*nucat-ttrate-lam*a
+]
+
+@named base_model_sys = ODESystem(eqs)
+
+tspan = (0.0,10000.0)
+prob = ODEProblem(base_model_sys, base_model_ss_values, tspan, base_model_parameters;jac=true,sparse=true)
 sol = solve(prob, Rodas4())
 plot(sol)
-
-#### KEEP THE FOLLOWING FOR A MODELINGTOOLKIT.JL IMPLEMENTATION
-
-base_model_parameters_a = Dict(
-    thetar => 426.8693338968694,
-    k_cm => 0.005990373118888,
-    s0 => 10000,
-    gmax => 1260.0,
-    thetax => 4.379733394834643,
-    Kt => 1.0e3,
-    M => 1.0e8,
-    we => 4.139172187824451,
-    Km => 1000,
-    vm => 5800.0,
-    nx => 300.0,
-    Kq => 1.522190403737490e+05,
-    Kp => 180.1378030928276,
-    vt => 726.0,
-    wr => 929.9678874564831,
-    wq => 948.9349882947897,
-    wp => 0.0,
-    nq => 4,
-    nr => 7549.0,
-    dm => 0.1,
-    kb => 0.0095,
-    ku => 1,
-    ns => 0.5
-    );
-
-base_model_ss_values_a = [
-    rmr => 807.530517658162,
-	em => 7066.62814403594,
-	rmq => 2316.16746788774,
-	rmt => 69.1538861165317,
-	et => 7066.62758622631,
-	rmm => 69.1538892849256,
-	mt => 9.64096853393699,
-	mm => 9.64096853393699,
-	q => 236681.293193619,
-	si => 128.404551112062,
-	mq => 322.904581569518,
-	mr => 5.94267303259607,
-	r => 17.3282796528522,
-	a => 9.17329183561663
-];
