@@ -37,7 +37,7 @@ function heter_model()
     #@parameters thetar k_cm s0 gmax thetax Kt M we Km vm nx Kq Kp vt wr wq wp nq nr dm kb ku ns sw_max dp kb_h ku_h
     het_params = @parameters w_max dp kb_h ku_h
     #@variables t rmr(t) em(t) rmq(t) rmt(t) et(t) rmm(t) mt(t) mm(t) q(t) si(t) mq(t) mr(t) r(t) a(t) p_h(t) m_h(t) c_h(t)
-    het_vars = @variables p_h(t) m_h(t) c_h(t)
+    het_vars = @variables t p_h(t) m_h(t) c_h(t)
     D = Differential(t)
 
     base_model_eqs, base_model_params, base_model_vars, ttrate_base = base_model()

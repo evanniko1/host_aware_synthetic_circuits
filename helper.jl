@@ -1,3 +1,15 @@
+
+"""
+	create_problem_dict!
+
+Formats all vectors to be used/updated in downstream queries.
+Returns a dictionary of:
+	1. initial conditions
+	2. parameters
+	3. time span
+
+Created by Evangelos-Marios Nikolados
+"""
 function create_problem_dict!(; init_values, params_values, tspan)
 	ode_problem_wrap = Dict("initial_conditions" => init_values,
 							"parameters" => params_values,
@@ -103,7 +115,7 @@ function ODE_model!(du,u,p,t)
 end
 
 function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8)
-	ttrate = ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
+	ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
 	grate = ttrate / M
 	
 	return ttrate, grate
@@ -199,7 +211,7 @@ end
 Helper function to perturb two parameters of the model. Parameter index specifies the parameter to perturb, for inner and outer loop respectively,
 range bounds are then log10() transformed, for inner and outer ranges respectively, and range_size specifies log-spaced sampling steps.
 
-Returns three vectors:
+Returns three vectors of vectors:
      i.   heterologous protein expression
      ii.  growth rate
 	 iii. total translation rate

@@ -75,6 +75,8 @@ include("test_code.jl")
 
 base_eqs, base_params, base_vars, trate = base_model();
 
+# method to map base_params and base_vars to dicts of parameter and initial values respectively
+
 
 base_model_parameters = [
     thetar => 426.8693338968694
