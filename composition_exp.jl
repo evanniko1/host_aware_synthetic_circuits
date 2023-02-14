@@ -102,7 +102,9 @@ ha_connected = compose(
         connections, t; name = :ha_connected
     ), het_iso, connected);
 
-simplified_ha = structural_simplify(ha_connected);
+simplified_ha = structural_simplify(ha_connected); 
 
-# try out extend()
+# try out extend() -- WORKS 
 nn = extend(het_iso, connected);
+
+# TODO -- UPDATE SHARED RESOURCES EQUATIONS!!!
