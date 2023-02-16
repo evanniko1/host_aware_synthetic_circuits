@@ -35,12 +35,18 @@ end;
 
 function heter_model()
     #@parameters thetar k_cm s0 gmax thetax Kt M we Km vm nx Kq Kp vt wr wq wp nq nr dm kb ku ns sw_max dp kb_h ku_h
-    het_params = @parameters w_max dp kb_h ku_h
+    @parameters w_max dp kb_h ku_h
     #@variables t rmr(t) em(t) rmq(t) rmt(t) et(t) rmm(t) mt(t) mm(t) q(t) si(t) mq(t) mr(t) r(t) a(t) p_h(t) m_h(t) c_h(t)
-    het_vars = @variables t p_h(t) m_h(t) c_h(t)
+    @variables t p_h(t) m_h(t) c_h(t)
     D = Differential(t)
 
-    base_model_eqs, base_model_params, base_model_vars, ttrate_base = base_model()
+    # get equations of base model
+    base_model_eqs, base_params, base_vars, ttrate_base = base_model()
+    # unpack parameter and variables vectors
+    @named base_model = ODESystem(base_model_eqs)
+    @unpack base_params = base_model
+    @unpack base_vars = base_model
+
     Kgamma= gmax/Kp
     gamma= gmax*a/(Kgamma + a)
     ttrate = ttrate_base + c_h*gamma
@@ -58,5 +64,5 @@ function heter_model()
     host_aware_eqs = base_model_eqs[1:end-2]
     append!(host_aware_eqs, eqs_het)
 
-    return host_aware_eqs, het_params, het_vars
+    return host_aware_eqs
 end

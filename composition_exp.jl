@@ -10,8 +10,6 @@ nucat  = em*vm*si/(Km + si)
 
 function base_model_eqs()
     lam = ((rmq + rmr + rmt + rmm)*gamma)/M
-    #ttrate = (rmq + rmr + rmt + rmm)*gamma
-    #lam    = ttrate/M 
 
     @variables t
     D = Differential(t)
@@ -58,29 +56,18 @@ function base_model_eqs()
     return eqs_dict, lam
 end
 
-function compose_base_model(; base_eqs_dict)
-    D= Differential(t)
-    connected = compose(ODESystem([
-    base_eqs_dict["house_keeping"]
-    base_eqs_dict["metabolic"]
-    base_eqs_dict["transporter"]
-    base_eqs_dict["ribo_mc"]
-    base_eqs_dict["ribosomes"]
-    base_eqs_dict["nutrient"]
-    base_eqs_dict["energy"]
-    ], t; name = :connected));
-
-    return connected
-end
-
-function het_model_eqs(; base_eqs_dict, base_lam)
+function het_model_eqs(; input_eqs_dict, input_lam)
     @parameters w_max dp kb_h ku_h
     @variables t m_h(t) c_h(t) p_h(t) r(t) a(t)
     D = Differential(t)
  
     # add contribution to growth
-    lam = ((rmq + rmr + rmt + rmm )*gamma)/M
+    lam = input_lam + c_h*gamma/M
 
+    # update all growth rates for the input system of equations
+    upd_eqs_dict = update_eqs!(eqs_dict= input_eqs_dict, term = input_lam - lam);
+
+    # define equations for heterologous species
     eqs_het = [
         D(m_h) ~ w_max*a/(thetax+a) - (lam + dm)*m_h + gamma/nx*c_h - kb_h*r*m_h + ku_h*c_h
         D(c_h) ~ -lam*c_h + kb_h*r*m_h - ku_h*c_h - gamma/nx*c_h
@@ -88,46 +75,105 @@ function het_model_eqs(; base_eqs_dict, base_lam)
     ];
     # update energy and ribosomal contributions
     eqs_r_pr_ha = [
-        D(r) ~ base_eqs_dict["ribosomes"][1].rhs - kb_h*m_h*r + ku_h*c_h + gamma/nx*c_h
+        D(r) ~ upd_eqs_dict["ribosomes"][1].rhs - kb_h*m_h*r + ku_h*c_h + gamma/nx*c_h
     ];
     eqs_a_ha = [
-        D(a) ~ base_eqs_dict["energy"][1].rhs - gamma*c_h
+        D(a) ~ upd_eqs_dict["energy"][1].rhs - gamma*c_h
     ];
 
     # organize host_aware model equations in a dictionary
     eqs_dict = Dict(
-        "house_keeping" => base_eqs_dict["house_keeping"],
-        "metabolic"     => base_eqs_dict["metabolic"],
-        "transporter"   => base_eqs_dict["transporter"],
-        "ribo_mc"       => base_eqs_dict["ribo_mc"],
+        "house_keeping" => upd_eqs_dict["house_keeping"],
+        "metabolic"     => upd_eqs_dict["metabolic"],
+        "transporter"   => upd_eqs_dict["transporter"],
+        "ribo_mc"       => upd_eqs_dict["ribo_mc"],
         "ribosomes"     => eqs_r_pr_ha,
         "heterologous"  => eqs_het,
-        "nutrient"      => base_eqs_dict["nutrient"],
+        "nutrient"      => upd_eqs_dict["nutrient"],
         "energy"        => eqs_a_ha
     )
 
-    return eqs_dict, ttrate_het
+    return eqs_dict, lam
 end
 
+function update_eqs!(; eqs_dict, term)
+    # create a deep copy of the dictionary
+    dict_to_updt = deepcopy(eqs_dict)
 
-base_eqs_dict, base_ttrate = base_model_eqs();
-het_eqs, _ = het_model_eqs(base_eqs_dict = base_eqs_dict, base_ttrate = base_ttrate);
+    for key in keys(eqs_dict)
+        for idx in range(1, length(eqs_dict[key]))
+            dict_to_updt[key][idx] = Equation(eqs_dict[key][idx].lhs, eqs_dict[key][idx].rhs + term)
+        end
+    end
+
+    return dict_to_updt
+end;
+
+function compose_model(eqs_dict)
+    D= Differential(t)
+    connected = compose(ODESystem(
+
+        [eqs_dict[key][idx] for key in keys(eqs_dict) for idx in range(1, length(eqs_dict[key]))], t; name = :connected));
+    return connected
+end;
+
+################################################
+base_eqs_dict, base_lam = base_model_eqs();
+ha_eqs, ha_lam = het_model_eqs(input_eqs_dict = base_eqs_dict, input_lam = base_lam);
 
 # compose the base model from proteome fractions
-D = Differential(t)
-connected = compose(ODESystem([
-    base_eqs_dict["house_keeping"]
-    base_eqs_dict["metabolic"]
-    base_eqs_dict["transporter"]
-    base_eqs_dict["ribosomes"]
-    base_eqs_dict["nutr_energy"]
-    ], t; name = :connected));
-
-
-het_iso = compose(ODESystem(het_eqs, t; name = :het_iso));
-
+base_model = compose_model(base_eqs_dict)
+ha_het_model = compose_model(ha_eqs)
 
 # try out extend() -- WORKS 
-nn = extend(het_iso, connected);
+#nn = extend(het_iso, connected);
 
-# TODO -- UPDATE SHARED RESOURCES EQUATIONS!!!
+################################################
+base_model_parameters = [
+    thetar => 426.8693338968694
+    k_cm => 0.005990373118888
+    s0 => 10000
+    gmax => 1260.0
+    thetax => 4.379733394834643
+    Kt => 1.0e3
+    M => 1.0e8
+    we => 4.139172187824451
+    Km => 1000
+    vm => 5800.0
+    nx => 300.0
+    Kq => 1.522190403737490e+05
+    Kp => 180.1378030928276
+    vt => 726.0
+    wr => 929.9678874564831
+    wq => 948.9349882947897
+    wp => 0.0
+    nq => 4
+    nr => 7549.0
+    dm => 0.1
+    kb => 0.0095
+    ku => 1
+    ns => 0.5
+    ];
+
+base_model_ss_values = [
+    rmr => 0
+    em => 0
+    rmq => 0
+    rmt => 0
+    et => 0
+    rmm => 0
+    mt => 0
+    mm => 0
+    q => 0
+    si => 0
+    mq => 0
+    mr => 0
+    r => 10
+    a => 1e3
+];
+
+using Plots
+plotly()
+prob = ODEProblem(base_model, base_model_ss_values, (0, 1e4), base_model_parameters; jac=true);
+sol  = solve(prob, Rodas4());
+plot(sol)

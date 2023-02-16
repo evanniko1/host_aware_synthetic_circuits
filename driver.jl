@@ -26,7 +26,6 @@ append!(p, het_p)
 
 ode_problem_dict = create_problem_dict!(init_values = u0, params_values = p, tspan = tspan)
 
-
 ##########
 # one run of the model
 #solve_once = solve_ode_problem!(model_def = ODE_model!, ode_problem_wrap = ode_problem_dict)
@@ -42,7 +41,7 @@ plot(phet, grate);
 
 # TEST ZONE
 # single perturbation -- WORKS
-ll, kk, _ = perturb_one_param!(ode_problem_dict = ode_problem_dict, param_index = 27, range_bounds = (-0.65, 0), range_size = 10);
+prot_exp_1D, grate_1D, _ = perturb_one_param!(ode_problem_dict = ode_problem_dict, param_index = 27, range_bounds = (-0.65, 0), range_size = 10);
 
 # double perturbation -- WORKS
-ll, kk, _ = perturb_two_params!(ode_problem_dict = ode_problem_dict, param_index_inner = 27, param_index_outer = 26, range_bounds_inner = (-0.65, 0), range_bounds_outer = (0, 2), range_size = 10);
+prot_exp_2D, grate_2D, _ = perturb_two_params!(ode_problem_dict = ode_problem_dict, param_index_inner = 27, param_index_outer = 26, range_bounds_inner = (-0.65, 0), range_bounds_outer = (0, 2), range_size = 10);

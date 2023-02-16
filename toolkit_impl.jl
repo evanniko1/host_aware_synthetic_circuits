@@ -127,3 +127,26 @@ sol  = solve(prob, Rodas4());
 plot(sol)
 
 ha_eqs, _, _ = heter_model();
+
+@variables t base_vars[1]
+
+##################
+include("GrowthModels.jl")
+using Main.GrowthModels
+
+base = Main.GrowthModels.base_model();
+het = Main.GrowthModels.heter_model(; extend_from = base);
+
+@named base_model = ODESystem(base)
+
+
+dadteq = equations(base_model)[end]           
+t      = independent_variable(base_model)   
+@variables t a(t) c_h(t) 
+@parameters M gmax Kp
+Kgamma = gmax/Kp
+gamma = gmax*a / (a + Kgamma)
+dadteq = Equation(dadteq.lhs, dadteq.rhs - c_h*gamma/M)   
+@named test_ext  = ODESystem([dadteq], t, states(base_model), parameters(base_model))
+#oprob  = ODEProblem(test_ext, u0map, tspan, pmap)
+#osol   = solve(oprob, Tsit5()
