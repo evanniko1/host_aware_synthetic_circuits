@@ -54,15 +54,70 @@ function base_model_eqs()
         "ribosomes"     => eqs_r_pr,
         "nutrient"      => eqs_s,
         "energy"        => eqs_a
-    )
-    return eqs_dict, lam
+    );
+
+    ss_values = Dict([
+        "rmr" => rmr => 0
+        "em"  => em  => 0
+        "rmq" => rmq => 0
+        "rmt" => rmt => 0
+        "et"  => et  => 0
+        "rmm" => rmm => 0
+        "mt"  => mt  => 0
+        "mm"  => mm  => 0
+        "q"   => q   => 0
+        "si"  => si  => 0
+        "mq"  => mq  => 0
+        "mr"  => mr  => 0
+        "r"   => r   => 10
+        "a"   => a   => 1e3
+    ]);
+
+    param_values = Dict([
+        "thetar" => thetar => 426.8693338968694
+        "k_cm" => k_cm => 0.005990373118888
+        "s0" => s0 => 10000
+        "gmax" => gmax => 1260.0
+        "thetax" => thetax => 4.379733394834643
+        "Kt" => Kt => 1.0e3
+        "M" => M => 1.0e8
+        "we" => we => 4.139172187824451
+        "Km" => Km => 1000
+        "vm" => vm => 5800.0
+        "nx" => nx => 300.0
+        "Kq" => Kq => 1.522190403737490e+05
+        "Kp" => Kp => 180.1378030928276
+        "vt" => vt => 726.0
+        "wr" => wr => 929.9678874564831
+        "wq" => wq => 948.9349882947897
+        "wp" => wp => 0.0
+        "nq" => nq => 4
+        "nr" => nr => 7549.0
+        "dm" => dm => 0.1
+        "kb" => kb => 0.0095
+        "ku" => ku => 1
+        "ns" => ns => 0.5
+    ]);
+    return eqs_dict, lam, param_values, ss_values
 end;
 
-function het_model_eqs(; input_eqs_dict, input_lam)
+function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_ss_vals::Dict, input_param_vals::Dict)
     @parameters w_max dp kb_h ku_h
     @variables t m_h(t) c_h(t) p_h(t) r(t) a(t)
     D = Differential(t)
- 
+
+    het_param_vals = Dict([
+        "wmax" => w_max => 150
+        "dp"   => dp    => 0.1
+        "kb_h" => kb_h  => exp10(-1.3335)
+        "ku_h" => ku_h  => exp10(-2.6575)
+    ])
+    het_ss_vals = Dict([
+        "m_h" => m_h => 0.0
+        "c_h" => c_h => 0.0
+        "p_h" => p_h => 0.0
+    ])
+
     # add contribution to growth
     lam = input_lam + c_h*gamma/M
 
@@ -95,10 +150,13 @@ function het_model_eqs(; input_eqs_dict, input_lam)
         "energy"        => eqs_a_ha
     )
 
-    return eqs_dict, lam
+    param_vals = merge!(input_param_vals, het_param_vals)
+    ss_vals    = merge!(input_ss_vals, het_ss_vals)
+
+    return eqs_dict, lam, param_vals, ss_vals
 end;
 
-function update_eqs!(; eqs_dict, term)
+function update_eqs!(; eqs_dict::Dict, term::Num)
     # create a deep copy of the dictionary
     dict_to_updt = deepcopy(eqs_dict)
 
@@ -111,7 +169,7 @@ function update_eqs!(; eqs_dict, term)
     return dict_to_updt
 end;
 
-function compose_model(eqs_dict)
+function compose_model(eqs_dict::Dict)
     D= Differential(t)
     connected = compose(ODESystem(
 

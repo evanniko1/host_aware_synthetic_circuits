@@ -117,6 +117,16 @@ function compose_model(eqs_dict)
     return connected
 end;
 
+#######
+# utility function for dictionary formating and updating
+function _format(dict::Dict)
+    return vec(collect(values(dict)))
+end;
+
+function _update!(dict::Dict, param::String, val::Float64)
+    dict[param] = dict[param][1] => val
+end;
+
 ################################################
 base_eqs_dict, base_lam = base_model_eqs();
 ha_eqs, ha_lam = het_model_eqs(input_eqs_dict = base_eqs_dict, input_lam = base_lam);
@@ -177,3 +187,31 @@ plotly()
 prob = ODEProblem(base_model, base_model_ss_values, (0, 1e4), base_model_parameters; jac=true);
 sol  = solve(prob, Rodas4());
 plot(sol)
+
+################################
+# previous code -- not sure if can turn into sth useful
+function gene(; name)
+    @parameters t nx w_max theta gmax Kp kb ku dm
+    @variables p(t) m(t) c(t) a(t) r(t)
+    Kgamma = gmax/Kp
+    gamma = gmax*a / (Kgamma + a)
+    D = Differential(t)
+    eqs = [
+        D(p) ~ gamma/nx*c
+        D(m) ~ w_max*a/(theta+a) + gamma/nx*c - kb*r*m + ku*c - dm*m
+        D(c) ~ kb*r*m - ku*c - gamma/nx*c
+    ];
+    ODESystem(eqs; name = name)
+end;
+
+function alpha(; name)
+    @parameters t vm Km vt Kt s ns
+    @variables em(t) et(t) si(t) a(t)
+    nucat= em*vm*si/(Km + si)
+    D = Differential(t)
+    eqs = [
+        D(si) ~ (et*vt*s/(Kt + s))-nucat
+        D(a)  ~ ns*nucat-ttrate
+    ]
+    ODESystem(eqs; name = name)
+end
