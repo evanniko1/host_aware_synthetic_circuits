@@ -172,7 +172,6 @@ end;
 function compose_model(eqs_dict::Dict)
     D= Differential(t)
     connected = compose(ODESystem(
-
         [eqs_dict[key][idx] for key in keys(eqs_dict) for idx in range(1, length(eqs_dict[key]))], t; name = :connected));
     return connected
 end;
@@ -186,47 +185,12 @@ function _update!(dict::Dict, param::String, val::Float64)
     dict[param] = dict[param][1] => val
 end;
 
-#################
-base_model_ss_values = Dict([
-    "rmr" => rmr => 0
-    "em"  => em  => 0
-    "rmq" => rmq => 0
-    "rmt" => rmt => 0
-    "et"  => et  => 0
-    "rmm" => rmm => 0
-    "mt"  => mt  => 0
-    "mm"  => mm  => 0
-    "q"   => q   => 0
-    "si"  => si  => 0
-    "mq"  => mq  => 0
-    "mr"  => mr  => 0
-    "r"   => r   => 10
-    "a"   => a   => 1e3
-]);
-base_model_parameters = Dict([
-    "thetar" => thetar => 426.8693338968694
-    "k_cm" => k_cm => 0.005990373118888
-    "s0" => s0 => 10000
-    "gmax" => gmax => 1260.0
-    "thetax" => thetax => 4.379733394834643
-    "Kt" => Kt => 1.0e3
-    "M" => M => 1.0e8
-    "we" => we => 4.139172187824451
-    "Km" => Km => 1000
-    "vm" => vm => 5800.0
-    "nx" => nx => 300.0
-    "Kq" => Kq => 1.522190403737490e+05
-    "Kp" => Kp => 180.1378030928276
-    "vt" => vt => 726.0
-    "wr" => wr => 929.9678874564831
-    "wq" => wq => 948.9349882947897
-    "wp" => wp => 0.0
-    "nq" => nq => 4
-    "nr" => nr => 7549.0
-    "dm" => dm => 0.1
-    "kb" => kb => 0.0095
-    "ku" => ku => 1
-    "ns" => ns => 0.5
-]);
+function map_vals(model::ODESystem, sol::ODESolution)
+    return [states(model)[idx] => sol[:, end][idx] for idx in range(1, length(sol[:, end]))];
+end;
+
+function update_multiple!(vect::Vector, dict::Dict)
+    [Main.GrowthModels._update!(dict, key, val) for (elm, val) in vect for key in keys(dict) if isequal(elm, dict[key][1])];
+end;
 
 end
