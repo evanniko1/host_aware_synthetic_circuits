@@ -101,13 +101,13 @@ function base_model_eqs()
     return eqs_dict, lam, param_values, ss_values
 end;
 
-function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_ss_vals::Dict, input_param_vals::Dict)
+function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals::Dict, input_ss_vals::Dict)
     @parameters w_max dp kb_h ku_h
     @variables t m_h(t) c_h(t) p_h(t) r(t) a(t)
     D = Differential(t)
 
     het_param_vals = Dict([
-        "wmax" => w_max => 150
+        "w_max" => w_max => 150
         "dp"   => dp    => 0.1
         "kb_h" => kb_h  => exp10(-1.3335)
         "ku_h" => ku_h  => exp10(-2.6575)
@@ -150,8 +150,8 @@ function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_ss_vals::Di
         "energy"        => eqs_a_ha
     )
 
-    param_vals = merge!(input_param_vals, het_param_vals)
-    ss_vals    = merge!(input_ss_vals, het_ss_vals)
+    param_vals = merge(input_param_vals, het_param_vals)
+    ss_vals    = merge(input_ss_vals, het_ss_vals)
 
     return eqs_dict, lam, param_vals, ss_vals
 end;
