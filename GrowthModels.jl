@@ -102,15 +102,16 @@ function base_model_eqs()
 end;
 
 function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals::Dict, input_ss_vals::Dict)
-    @parameters w_max dp kb_h ku_h
+    @parameters w_max dm_h dp_h kb_h ku_h
     @variables t m_h(t) c_h(t) p_h(t) r(t) a(t)
     D = Differential(t)
 
     het_param_vals = Dict([
         "w_max" => w_max => 150
-        "dp"   => dp    => 0.1
-        "kb_h" => kb_h  => exp10(-1.3335)
-        "ku_h" => ku_h  => exp10(-2.6575)
+        "dm_h"  => dm_h  => log(2)/2
+        "dp_h"  => dp_h  => log(2)/4
+        "kb_h"  => kb_h  => 0.0095
+        "ku_h"  => ku_h  => 1
     ])
     het_ss_vals = Dict([
         "m_h" => m_h => 0.0
@@ -126,9 +127,9 @@ function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals:
 
     # define equations for heterologous species
     eqs_het = [
-        D(m_h) ~ w_max*a/(thetax+a) - (lam + dm)*m_h + gamma/nx*c_h - kb_h*r*m_h + ku_h*c_h
+        D(m_h) ~ w_max*a/(thetax+a) - (lam + dm_h)*m_h + gamma/nx*c_h - kb_h*r*m_h + ku_h*c_h
         D(c_h) ~ -lam*c_h + kb_h*r*m_h - ku_h*c_h - gamma/nx*c_h
-        D(p_h) ~ gamma/nx*c_h - (lam + dp)*p_h
+        D(p_h) ~ gamma/nx*c_h - (lam + dp_h)*p_h
     ];
     # update energy and ribosomal contributions
     eqs_r_pr_ha = [
