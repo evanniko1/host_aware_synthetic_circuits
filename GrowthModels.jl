@@ -3,36 +3,87 @@ module GrowthModels
 using ModelingToolkit, DifferentialEquations
 
 # global base model parameters and variables
-@parameters thetar k_cm s0 gmax thetax Kt M we Km vm nx Kq Kp vt wr wq wp nq nr dm kb ku ns  
-@variables t mq(t) rmq(t) q(t) mm(t) rmm(t) em(t) mt(t) rmt(t) et(t) mr(t) rmr(t) r(t) si(t) a(t)
+prm = @parameters thetar k_cm s0 gmax thetax Kt M we Km vm nx Kq Kp vt wr wq wp nq nr dm kb ku ns  
+var= @variables t mq(t) rmq(t) q(t) mm(t) rmm(t) em(t) mt(t) rmt(t) et(t) mr(t) rmr(t) r(t) si(t) a(t)
 #some global calculations
 Kgamma = gmax/Kp
 gamma  = gmax*a/(Kgamma + a)
 nucat  = em*vm*si/(Km + si)
 
-function base_model_eqs()
-    lam = ((rmq + rmr + rmt + rmm)*gamma)/M
+function get_prm_var()
+    prm_dict = Dict([
+        "thetar" => thetar 
+        "k_cm" => k_cm 
+        "s0" => s0 
+        "gmax" => gmax 
+        "thetax" => thetax 
+        "Kt" => Kt 
+        "M" => M 
+        "we" => we 
+        "Km" => Km 
+        "vm" => vm 
+        "nx" => nx
+        "Kq" => Kq 
+        "Kp" => Kp 
+        "vt" => vt 
+        "wr" => wr 
+        "wq" => wq 
+        "wp" => wp 
+        "nq" => nq 
+        "nr" => nr 
+        "dm" => dm 
+        "kb" => kb 
+        "ku" => ku 
+        "ns" => ns 
+    ]);
+    var_dict  = Dict([
+        "rmr" => rmr
+        "em"  => em
+        "rmq" => rmq
+        "rmt" => rmt
+        "et"  => et
+        "rmm" => rmm
+        "mt"  => mt
+        "mm"  => mm
+        "q"   => q
+        "si"  => si
+        "mq"  => mq
+        "mr"  => mr
+        "r"   => r
+        "a"   => a
+    ]);
+    return prm_dict, var_dict
+end
 
+function base_model_eqs(; R::Dict = Dict([
+    "house_keeping" => 1,
+    "metabolic"     => 1,
+    "transporter"   => 1,
+    "ribosome"      => 1
+     ]))
+
+    # unpack regulatory functions
+    lam = ((rmq + rmr + rmt + rmm)*gamma)/M
     @variables t
     D = Differential(t)
 
     eqs_hk_pr = [
-        D(mq)  ~ (wq*a/(thetax + a)/(1 + (q/Kq)^nq))+ku*rmq+gamma/nx*rmq-kb*r*mq-dm*mq-lam*mq,
+        D(mq)  ~ (wq*a/(thetax + a))*R["house_keeping"]+ku*rmq+gamma/nx*rmq-kb*r*mq-dm*mq-lam*mq,
         D(rmq) ~ kb*r*mq-ku*rmq-gamma/nx*rmq-lam*rmq,
         D(q)   ~ gamma/nx*rmq-lam*q
     ];
     eqs_m_pr = [
-        D(mm)  ~ (we*a/(thetax + a))+ku*rmm+gamma/nx*rmm-kb*r*mm-dm*mm-lam*mm,
+        D(mm)  ~ (we*a/(thetax + a))*R["metabolic"][1]+ku*rmm+gamma/nx*rmm-kb*r*mm-dm*mm-lam*mm,
         D(rmm) ~ kb*r*mm-ku*rmm-gamma/nx*rmm-lam*rmm,
         D(em)  ~ gamma/nx*rmm-lam*em
     ];
     eqs_t_pr = [
-        D(mt)  ~ (we*a/(thetax + a))+ku*rmt+gamma/nx*rmt-kb*r*mt-dm*mt-lam*mt,
+        D(mt)  ~ (we*a/(thetax + a))*R["transporter"][1]+ku*rmt+gamma/nx*rmt-kb*r*mt-dm*mt-lam*mt,
         D(rmt) ~ kb*r*mt-ku*rmt-gamma/nx*rmt-lam*rmt,
         D(et)  ~ gamma/nx*rmt-lam*et
     ];
     eqs_r_mc = [
-        D(mr)  ~ (wr*a/(thetar + a))+ku*rmr+gamma/nr*rmr-kb*r*mr-dm*mr-lam*mr,
+        D(mr)  ~ (wr*a/(thetar + a))*R["ribosome"][1]+ku*rmr+gamma/nr*rmr-kb*r*mr-dm*mr-lam*mr,
         D(rmr) ~ kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr,
     ];
     eqs_r_pr = [
@@ -101,7 +152,7 @@ function base_model_eqs()
     return eqs_dict, lam, param_values, ss_values
 end;
 
-function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals::Dict, input_ss_vals::Dict)
+function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals::Dict, input_ss_vals::Dict, R = 1)
     @parameters w_max dm_h dp_h kb_h ku_h
     @variables t m_h(t) c_h(t) p_h(t) r(t) a(t)
     D = Differential(t)
@@ -127,7 +178,7 @@ function het_model_eqs(; input_eqs_dict::Dict, input_lam::Num, input_param_vals:
 
     # define equations for heterologous species
     eqs_het = [
-        D(m_h) ~ w_max*a/(thetax+a) - (lam + dm_h)*m_h + gamma/nx*c_h - kb_h*r*m_h + ku_h*c_h
+        D(m_h) ~ R*w_max*a/(thetax+a) - (lam + dm_h)*m_h + gamma/nx*c_h - kb_h*r*m_h + ku_h*c_h
         D(c_h) ~ -lam*c_h + kb_h*r*m_h - ku_h*c_h - gamma/nx*c_h
         D(p_h) ~ gamma/nx*c_h - (lam + dp_h)*p_h
     ];
@@ -195,3 +246,5 @@ function update_multiple!(vect::Vector, dict::Dict)
 end;
 
 end
+
+
