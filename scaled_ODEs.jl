@@ -8,23 +8,22 @@ function scaled_ODEmodel!(du,u,p,t)
     thetar= p[2];
     we= p[3];
     vt= p[4];
-    s0= p[5];
-    nx= p[6];
-    nq= p[7];
-    nr= p[8];
-    ns= p[9];
-    gmax= p[10];
-    thetax= p[11];
-    Km= p[12];
-    Kq= p[13];
-    Kp= p[14];
-    wr= p[15];
-    wq= p[16];
-    Kt= p[17];
-    kb= p[18];
-    Mref= p[19];
-    ku= p[20];
-    vm= p[21];
+    nx= p[5];
+    nq= p[6];
+    nr= p[7];
+    ns= p[8];
+    gmax= p[9];
+    thetax= p[10];
+    Km= p[11];
+    Kq= p[12];
+    Kp= p[13];
+    wr= p[14];
+    wq= p[15];
+    Kt= p[16];
+    kb= p[17];
+    Mref= p[18];
+    ku= p[19];
+    vm= p[20];
 
     # initial conditions
     rmr= u[1];
@@ -69,13 +68,13 @@ function scaled_ODEmodel!(du,u,p,t)
  
 end
 
-dm= 0.1;
-zeta = 2.8312e+06;
+# parameter values
+zeta = 2.8312e+06; # not sure if we actually need this
 
+dm= 0.1;
 thetar= 426.8693338968694;
 we= 4.139172187824451;
 vt= 726.0;
-s0= 1.0e4;
 nx= 300.0;
 nq= 4;
 nr= 7549.0;
@@ -97,11 +96,27 @@ thetar = thetar*zeta;
 thetax = thetax * zeta;
 Kp = Kp/zeta;
 
+# initial condition values
+rmr_0= 736.04
+em_0= 7092.8
+rmq_0= 2211.5
+rmt_0= 66.217
+et_0= 7092.8
+rmm_0= 66.217
+a_0= 10.359
+mm_0= 11.015
+q_0= 2.3688e+5
+mt_0= 11.015
+si_0= 128.4
+r_0= 21.224
+mq_0= 367.87
+mr_0= 39.946
+
 # parameters vector
-p = [dm, thetar, we, vt, s0, nx, nq, nr, ns, gmax, thetax, Km, Kq, Kp, wr, wq, Kt, kb, Mref, ku, vm]
+p = [dm, thetar, we, vt, nx, nq, nr, ns, gmax, thetax, Km, Kq, Kp, wr, wq, Kt, kb, Mref, ku, vm]
 
 #initial conditions vector
-u0 = [1, 1, 1, 1, 1, 1, 1000, 1, 1, 1, 1, 10, 1, 1]
+u0 = [rmr_0, em_0, rmq_0, rmt_0,  et_0,  rmm_0, a_0, mm_0, q_0, mt_0, si_0,  r_0, mq_0,  mr_0]
 
 ######
 tspan = (0.0,1e5) 
