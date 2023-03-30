@@ -101,6 +101,7 @@ while isempty(intersect(IE,2))   # while not divided
         # HERE :: change syntax to be Julia-specific
         # pattern matching :: https://thautwarm.github.io/MLStyle.jl/latest/syntax/pattern.html#guards
         # also check Match.jl :: https://github.com/kmsquire/Match.jl
+        # not elegant solution :: if/else 
         switch part
             case "stoch1"
                 # just partition binomially with pdiv
