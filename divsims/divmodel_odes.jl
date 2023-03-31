@@ -105,13 +105,16 @@ function divmodel_odes(t, y, data)
     dydt[25]= +(M/Mref*wr*a/(thetar*M/Mref+a))+ku*rmr+gamma/nr*rmr-kb*Mref/M*r*mr-dm*mr;
     dydt[26]= +(M/Mref*wy*a/(thetax*M/Mref+a))+ku*rmy+gamma/nx*rmy-kby*Mref/M*r*my-dm*my;
 
-if length(y) > 26
-    dfposdt = ones(length(fpos));
-    if haskey(data, "CD") && data.CD
-        dtposdt = dfposdt * 1/(C+D) * a/(K_cd*M/Mref + a)
-    end
-    dydt = vcat(dydt, dfposdt)
-end
 
-flag = 0
-new_data = []
+    if length(y) > 26
+        dfposdt = ones(length(fpos));
+        if haskey(data, "CD") && data.CD
+            dtposdt = dfposdt * 1/(C+D) * a/(K_cd*M/Mref + a)
+        end
+        dydt = vcat(dydt, dfposdt)
+    end
+
+    flag = 0
+    new_data = []
+
+end
