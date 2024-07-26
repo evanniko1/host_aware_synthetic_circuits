@@ -4,9 +4,16 @@ using ModelingToolkit, DifferentialEquations, Main.GrowthModels, Plots
 plotly()
 
 ##################
+b_prm, b_var = Main.GrowthModels.get_prm_var();
+base_regulatory = Dict([
+    "house_keeping" => 1 / (1 + (b_var["q"]/b_prm["Kq"])^b_prm["nq"]),
+    "metabolic"     => Num(1), 
+    "transporter"   => Num(1), 
+    "ribosome"      => Num(1), 
+])
 
 # generate differential equations for base model
-base_eqs_dict, base_lam, base_params, base_ss = Main.GrowthModels.base_model_eqs();
+base_eqs_dict, base_lam, base_params, base_ss = Main.GrowthModels.base_model_eqs(R = base_regulatory);
 
 # compose the base model from proteome fractions
 base_model = Main.GrowthModels.compose_model(base_eqs_dict)

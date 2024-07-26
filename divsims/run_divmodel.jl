@@ -1,3 +1,5 @@
+
+
 # vectors for saving thing
 tvec = []
 tauvec = []
@@ -19,7 +21,7 @@ t = 0
 tic()
 
 for k = 1:length(varnames)
-eval(Symbol(varnames[k])) = []
+    eval(Symbol(varnames[k])) = []
 end
 
 # simulate
