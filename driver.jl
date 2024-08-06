@@ -33,7 +33,7 @@ if model_def == HETER_ODE_model!
     kbrep = exp10(-1.3335) # default value: exp10(-1.3335), kb_rng[end]
     wmaxrep = 150
 
-    # oganize in a vector
+    # organize in a vector
     het_p = [ns, dmrep, dprep, kappa_ini, wmaxrep, kbrep, kurep]
 
 elseif model_def == REPR_ODE_model!
@@ -178,7 +178,7 @@ prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict,
                                             param_index = 25, 
                                             range_bounds = (0, 4), 
                                             range_size = 50);
-plot(prot_exp_1D["protein_2"]) # Fig 2.3B
+plot(prot_exp_1D["protein_1"]) # Fig 2.3B
 plot(grate_1D) # Fig 2.3B (inset)
 plot(prot_exp_1D["protein_1"], grate_1D)
 
@@ -188,20 +188,20 @@ plot(prot_exp_1D["protein_1"], grate_1D)
 #prot_exp_2D, grate_2D, vrate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, param_index_inner = 22, param_index_outer = 27, range_bounds_inner = (0, 3), range_bounds_outer = (-0.65, 0), range_size = 50);
 ## NEW 
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
-                                            param_index_inner = 24, 
-                                            param_index_outer = 25, 
-                                            range_bounds_inner = (0, 1), 
+                                            param_index_inner = 25, 
+                                            param_index_outer = 28, 
+                                            range_bounds_inner = (0, 4), 
                                             range_bounds_outer = (0, 4), 
-                                            range_size = 50);
-plot(prot_exp_2D["protein_1"], grate_2D)
+                                            range_size = 25);
+plot(prot_exp_2D["protein_3"], grate_2D)
 
 #plotly();
 prot_exp_RBS, grate_RBS = perturb_param_w_RBS!(ode_problem_dict = ode_problem_dict, param_index = 24, range_bounds = (0, 3), RBS_bounds = (-4, -2, 0), range_size = 50)
 plot(prot_exp_RBS["protein_1"], grate_RBS)
 
 #plotly();
-#prot_exp_RBS_only, grate_RBS_only = perturb_RBS!(ode_problem_dict = ode_problem_dict, RBS_bounds = (-4, -2, 0), range_size = 50)
-#plot(prot_exp_RBS_only["protein_1"], grate_RBS_only)
+prot_exp_RBS_only, grate_RBS_only = perturb_RBS!(ode_problem_dict = ode_problem_dict, RBS_bounds = (-4, -2, 0), range_size = 50)
+plot(prot_exp_RBS_only["protein_1"], grate_RBS_only)
 
 
 #using Plots
@@ -215,8 +215,6 @@ plot(prot_exp_RBS["protein_1"], grate_RBS)
 
 
 # plot heatmap
-heatmap(vector_to_matrix(prot_exp_2D["protein_4"]), 
-        #xscale=:log10, yscale=:log10
-)
+heatmap(vector_to_matrix(prot_exp_2D["protein_4"]))
 
 heatmap(vector_to_matrix(grate_2D))
