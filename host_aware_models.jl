@@ -154,14 +154,14 @@ function REPR_ODE_model!(du,u,p,t)
 	kbrep_3= p[32]    # heterologous mRNA-ribosome 3 binding rate
 	kurep_3= p[33]	  # heterologous mRNA-ribosome 3 unbinding rate
 
-    Kq_rep_1 = p[34]
-    nq_rep_1 = p[35]
+    Kq_rep_1 = p[34]  # heterologous protein 1 inhibition threshold
+    nq_rep_1 = p[35]  # heterologous protein 1 inhibition Hill coefficient
 
-    Kq_rep_2 = p[36]
-    nq_rep_2 = p[37]   
+    Kq_rep_2 = p[36]  # heterologous protein 2 inhibition threshold
+    nq_rep_2 = p[37]  # heterologous protein 2 inhibition Hill coefficient 
 
-    Kq_rep_3 = p[38]
-    nq_rep_3 = p[39]
+    Kq_rep_3 = p[38]  # heterologous protein 3 inhibition threshold
+    nq_rep_3 = p[39]  # heterologous protein 3 inhibition Hill coefficient
 
 	rmr= u[1]   # ribosomal mRNA :: ribosome complex
 	em= u[2]    # metabolic enzyme
@@ -177,35 +177,36 @@ function REPR_ODE_model!(du,u,p,t)
 	mr= u[12]   # ribosomal mRNA
 	r= u[13]    # free ribosomes
 	a= u[14]    # energy
-    
-	rep_1= u[15]
-	mrep_1 = u[16]
-	rmrep_1 = u[17]
 
-	rep_2= u[18]
-	mrep_2 = u[19]
-	rmrep_2 = u[20]
+	# Repressilator
+	rep_1= u[15]    # reporter heterologous protein 1
+	mrep_1 = u[16]  # reporter heterologous protein 1 mRNA 
+	rmrep_1 = u[17] # reporter heterologous protein 1 mRNA :: ribosome complex
+
+	rep_2= u[18]    # reporter heterologous protein 2
+	mrep_2 = u[19]  # reporter heterologous protein 2 mRNA 
+	rmrep_2 = u[20] # reporter heterologous protein 3 mRNA :: ribosome complex
 		
-	rep_3= u[21]
-	mrep_3 = u[22]
-	rmrep_3 = u[23]		
+	rep_3= u[21]    # reporter heterologous protein 3
+	mrep_3 = u[22]  # reporter heterologous protein 3 mRNA 
+	rmrep_3 = u[23] # reporter heterologous protein 3 mRNA :: ribosome complex
 
-	Kgamma= gmax/Kp # threshold amount of energy where elongation is halfmaximal
+	Kgamma= gmax/Kp            # translation elongation threshold
 	gamma= gmax*a/(Kgamma + a) # effective rate of translational elongation
 
-	ttrate= (rmq + rmr + rmt + rmm + kappa_ini*rmrep_1 + kappa_ini*rmrep_2 + kappa_ini*rmrep_3)*gamma
+	ttrate= (rmq + rmr + rmt + rmm + kappa_ini*rmrep_1 + kappa_ini*rmrep_2 + kappa_ini*rmrep_3)*gamma # total translation rate
 				
-	vrep_1 = gamma/nx*(kappa_ini*rmrep_1);
-	wrep_1 = wmaxrep_1*a/(thetax+a);
+	vrep_1 = gamma/nx*(kappa_ini*rmrep_1); # heterologous protein 1 translation rate
+	wrep_1 = wmaxrep_1*a/(thetax+a);       # heterologous transcription rate 1
 
-	vrep_2 = gamma/nx*(kappa_ini*rmrep_2);
-	wrep_2 = wmaxrep_2*a/(thetax+a);
+	vrep_2 = gamma/nx*(kappa_ini*rmrep_2); # heterologous protein 2 translation rate
+	wrep_2 = wmaxrep_2*a/(thetax+a);       # heterologous transcription rate 2
 
-	vrep_3 = gamma/nx*(kappa_ini*rmrep_3);
-	wrep_3 = wmaxrep_3*a/(thetax+a);	
+	vrep_3 = gamma/nx*(kappa_ini*rmrep_3); # heterologous protein 3 translation rate
+	wrep_3 = wmaxrep_3*a/(thetax+a);       # heterologous transcription rate 3
 
-	lam= ttrate/M # growth rate
-	nucat= em*vm*si/(Km + si) # rate of metabolism of si by em
+	lam= ttrate/M             # growth rate
+	nucat= em*vm*si/(Km + si) # rate of metabolism of internalized nutrient
  
 	# Ordinary Differential Equations
 	du[1]= kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr
