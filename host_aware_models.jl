@@ -12,90 +12,85 @@ Created by Evangelos-Marios Nikolados.
 """
 function HETER_ODE_model!(du,u,p,t)
 
-	thetar= p[1]  # ribosomal threshold amount of energy at which transcription is half maximal 
+	thetar= p[1]  # ribosome transcription threshold
 	k_cm= p[2]    # chloramphenicol-binding rate
 	s0= p[3]      # external nutrient
-	gmax= p[4]    # maximal rate of translational elongation 
-	cl= p[5]      #
-	thetax= p[6]  # non-ribosomal threshold amount of energy at which transcription is half maximal
+	gmax= p[4]    # maximal translation elongation rate
+	cl= p[5]      # 
+	thetax= p[6]  # non-ribosomal transcription threshold
 	Kt= p[7]      # nutrient import threshold
-	M= p[8]       # fixed size of the cell i.e total cell mass
+	M= p[8]       # total cell mass
 	we= p[9]      # max. enzyme transcription rate we = wt = wm
 	Km= p[10]     # enzymatic threshold 
-    f= cl*k_cm
-
+    #f= cl*k_cm
 	vm= p[11]     # max. enzymatic rate
 	nx= p[12]     # length of non-ribosomal proteins
 	Kq= p[13]     # q-autoinhibition threshold
-	Kp= p[14]     # kgamma = gmax/Kp = 7
+	Kp= p[14]     # 
 	vt= p[15]     # max. nutrient import rate (something to do with nuimpt)
 	wr= p[16]     # maximal transcription rate of r
 	wq= p[17]     # maximal transcription rate of q 
 	wp= p[18]     # maximal transcription rate of p
-	nq= p[19]     # q-autoinhibition Hill coef (?)
-	nr= p[20]     # length of r (rybosome) protein
-	ns= p[21]     # one molecule of s yields ns molecules of a (energy) (nutrient efficiency)
+	nq= p[19]     # q-autoinhibition Hill coefficient
+	nr= p[20]     # ribosome length
+	ns= p[21]     # nutrient efficiency
 
-    b= 0  # Hack 
 	dm= 0.1        # endogenous mRNA degradation rate
-    kb= 0.0095     #
-    ku= 1          # 
+    kb= 0.0095     # endogenous mRNA-ribosome binding rate
+    ku= 1          # endogenous mRNA-ribosome unbinding rate
 	
     dmrep = p[22]  # heterologous mRNA degradation rate
     dprep = p[23]  # active protein degradation rate
     kappa_ini = p[24] # translation initiation efficiency
 	wmaxrep = p[25]   # maximal transcription rate for heterologous gene
-	kbrep= p[26]	  #  
-	kurep= p[27]      # 
+	kbrep= p[26]	  # heterologous mRNA-ribosome binding rate
+	kurep= p[27]      # heterologous mRNA-ribosome unbinding rate
 	
-	rmr= u[1] # complex between a ribosome and the mRNA for protein r
-	em= u[2] # enzyme that metabolizes si (nutrinet) into a (energy)
-	rmq= u[3] # complex between a ribosome and the mRNA for protein q
-	rmt= u[4] # complex between a ribosome and the mRNA for protein et
-	et= u[5] # enzyme that transports s (energy) into the cell
-	rmm= u[6] # complex between a ribosome and the mRNA for protein em
-	mt= u[7] # mRNA of et
-	mm= u[8] # mRNA of em
-	q= u[9] # house keeping proteins
-	si= u[10] # nutrient (internalized)
-	mq= u[11] # mRNA of q
-	mr= u[12] # mRNA of r (rybosomes)
-	r= u[13] # number of rybosomes
-	a= u[14] # energy
+	rmr= u[1]   # ribosomal mRNA :: ribosome complex
+	em= u[2]    # metabolic enzyme
+	rmq= u[3]   # housekeeping protein mRNA :: ribosome complex
+	rmt= u[4]   # transporter protein mRNA :: ribosome complex
+	et= u[5]    # transporter protein
+	rmm= u[6]   # metabolic enzyme mRNA :: ribosome complex
+	mt= u[7]    # transporter protein mRNA
+	mm= u[8]    # metabolic enzyme mRNA
+	q= u[9]     # house keeping proteins
+	si= u[10]   # internalized nutrient
+	mq= u[11]   # housekeeping protein mRNA
+	mr= u[12]   # ribosomal mRNA
+	r= u[13]    # free ribosomes
+	a= u[14]    # energy
     
     # rep is heterologous protein
-	rep= u[15]
-	mrep = u[16]
-	rmrep = u[17]
+	rep= u[15]    # reporter heterologous protein
+	mrep = u[16]  # reporter heterologous protein mRNA
+	rmrep = u[17] # reporter heterologous protein mRNA :: ribosome complex
 
-	Kgamma= gmax/Kp # threshold amount of energy where elongation is halfmaximal
+	Kgamma= gmax/Kp            # translation elongation threshold
 	gamma= gmax*a/(Kgamma + a) # effective rate of translational elongation
 
-	ttrate= (rmq + rmr + rmt + rmm + kappa_ini*rmrep)*gamma # term in expression of lambda
-	vrep = gamma/nx*(kappa_ini*rmrep);
-	wrep = wmaxrep*a/(thetax+a);
+	ttrate= (rmq + rmr + rmt + rmm + kappa_ini*rmrep)*gamma # total translation rate
+	vrep = gamma/nx*(kappa_ini*rmrep);                      # heterologous protein translation rate
+	wrep = wmaxrep*a/(thetax+a);                            # heterologous transcription rate
 
 	lam= ttrate/M # growth rate
 	nucat= em*vm*si/(Km + si) # rate of metabolism of si by em
  
-	du[1]= kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr # (6)
-	du[2]= gamma/nx*rmm-lam*em # (4)
-	du[3]= kb*r*mq-ku*rmq-gamma/nx*rmq-lam*rmq # (6)
-	du[4]= kb*r*mt+b-ku*rmt-gamma/nx*rmt-lam*rmt # (6)
-	du[5]= gamma/nx*rmt-lam*et # (4)
-	du[6]= kb*r*mm-ku*rmm-gamma/nx*rmm-lam*rmm # (6)
-	du[7]= (we*a/(thetax + a))+ku*rmt+gamma/nx*rmt-kb*r*mt-dm*mt-lam*mt # (5)
-	du[8]= (we*a/(thetax + a))+ku*rmm+gamma/nx*rmm-kb*r*mm-dm*mm-lam*mm # (5)
-	du[9]= gamma/nx*rmq-lam*q # (4)
-	du[10]= (et*vt*s0/(Kt + s0))-nucat-lam*si # (1)  import and metabolism of si
-	du[11]= (wq*a/(thetax + a)/(1 + (q/Kq)^nq))+ku*rmq+gamma/nx*rmq-kb*r*mq-dm*mq-lam*mq # (5)
-	du[12]= (wr*a/(thetar + a))+ku*rmr+gamma/nr*rmr-kb*r*mr-dm*mr-lam*mr # (5)
-
+	# Ordinary Differential Equations
+	du[1]= kb*r*mr-ku*rmr-gamma/nr*rmr-lam*rmr
+	du[2]= gamma/nx*rmm-lam*em
+	du[3]= kb*r*mq-ku*rmq-gamma/nx*rmq-lam*rmq
+	du[4]= kb*r*mt+-ku*rmt-gamma/nx*rmt-lam*rmt
+	du[5]= gamma/nx*rmt-lam*et
+	du[6]= kb*r*mm-ku*rmm-gamma/nx*rmm-lam*rmm
+	du[7]= (we*a/(thetax + a))+ku*rmt+gamma/nx*rmt-kb*r*mt-dm*mt-lam*mt
+	du[8]= (we*a/(thetax + a))+ku*rmm+gamma/nx*rmm-kb*r*mm-dm*mm-lam*mm
+	du[9]= gamma/nx*rmq-lam*q
+	du[10]= (et*vt*s0/(Kt + s0))-nucat-lam*si
+	du[11]= (wq*a/(thetax + a)/(1 + (q/Kq)^nq))+ku*rmq+gamma/nx*rmq-kb*r*mq-dm*mq-lam*mq
+	du[12]= (wr*a/(thetar + a))+ku*rmr+gamma/nr*rmr-kb*r*mr-dm*mr-lam*mr
 	du[13]= ku*rmr+ku*rmt+ku*rmm+ku*rmq+(1-kappa_ini)*kurep*rmrep+gamma/nr*rmr+gamma/nr*rmr+gamma/nx*rmt+gamma/nx*rmm+gamma/nx*rmq+vrep-kb*r*mr-kb*r*mt-kb*r*mm-kb*r*mq-kbrep*r*mrep-lam*r 
-	
-	du[14]= ns*nucat-ttrate-lam*a # (2) energy is created from metabolism and lost from translation and dilution
-
-	# heterologous equations, equations above also required modifications for heterologous case!
+	du[14]= ns*nucat-ttrate-lam*a
 	du[15]= vrep - (lam + dprep)*rep
 	du[16]= wrep - (lam + dmrep)*mrep + vrep - kbrep*r*mrep + (1-kappa_ini)*kurep*rmrep
 	du[17]= -lam*rmrep + kbrep*r*mrep - (1-kappa_ini)*kurep*rmrep - vrep
