@@ -8,17 +8,9 @@ include("values.jl")
 include("helper.jl")
 include("host_aware_models.jl")
 
-# init plotly
-#plotly();
-
-# time span
+# time span fo
 tspan = (0.0, 1e9)
 ##########
-
-# just some bounds
-#wmaxrep = exp10.(range(0, 3, length = 50))
-#kb_rng = exp10.(range(-2, 0, length = 50))
-#ku_rng = reverse(exp10.(range(-4, -2, length = 50)))
 
 # exposed relevant parameters
 ns = 0.5
