@@ -1,8 +1,9 @@
 # model definition file
 
+###############
 # host coupled with a single heterologous gene
 """
-    ODE_model!(du,u,p,t)
+    HETER_ODE_model!(du,u,p,t)
 
 Defines ODEs for extension of the growth model by Weisse et al, 2015, 
 with effects of translation initiation on the expression of a heterologous protein.
@@ -11,41 +12,41 @@ Created by Evangelos-Marios Nikolados.
 """
 function HETER_ODE_model!(du,u,p,t)
 
-	thetar= p[1] # ribosomal threshold amount of energy at which transcription is half maximal 
-	k_cm= p[2] # chloramphenicol-binding rate no idea why it is here
-	s0= p[3] # external nutrient
-	gmax= p[4] # maximal rate of translational elongation 
-	cl= p[5] #
-	thetax= p[6] # non-ribosomal threshold amount of energy at which transcription is half maximal
-	Kt= p[7] # nutrient import threshold
-	M= p[8] # fixed size of the cell i.e total cell mass
-	we= p[9] # max. enzyme transcription rate we = wt = wm
-	Km= p[10] # enzymatic threshold 
+	thetar= p[1]  # ribosomal threshold amount of energy at which transcription is half maximal 
+	k_cm= p[2]    # chloramphenicol-binding rate
+	s0= p[3]      # external nutrient
+	gmax= p[4]    # maximal rate of translational elongation 
+	cl= p[5]      #
+	thetax= p[6]  # non-ribosomal threshold amount of energy at which transcription is half maximal
+	Kt= p[7]      # nutrient import threshold
+	M= p[8]       # fixed size of the cell i.e total cell mass
+	we= p[9]      # max. enzyme transcription rate we = wt = wm
+	Km= p[10]     # enzymatic threshold 
     f= cl*k_cm
 
-	vm= p[11] # max. enzymatic rate
-	nx= p[12] # length of non-ribosomal proteins
-	Kq= p[13] # q-autoinhibition threshold (some constant for translation rate of q)
-	Kp= p[14] # kgamma = gmax/Kp = 7
-	vt= p[15] # max. nutrient import rate (something to do with nuimpt)
-	wr= p[16] # maximal transcription rate of r
-	wq= p[17] # maximal transcription rate of q 
-	wp= p[18] # maximal transcription rate of p
-	nq= p[19] # q-autoinhibition Hill coef (?)
-	nr= p[20] # length of r (rybosome) protein
-	ns= p[21] # one molecule of s yields ns molecules of a (energy) (nutrient efficiency)
+	vm= p[11]     # max. enzymatic rate
+	nx= p[12]     # length of non-ribosomal proteins
+	Kq= p[13]     # q-autoinhibition threshold
+	Kp= p[14]     # kgamma = gmax/Kp = 7
+	vt= p[15]     # max. nutrient import rate (something to do with nuimpt)
+	wr= p[16]     # maximal transcription rate of r
+	wq= p[17]     # maximal transcription rate of q 
+	wp= p[18]     # maximal transcription rate of p
+	nq= p[19]     # q-autoinhibition Hill coef (?)
+	nr= p[20]     # length of r (rybosome) protein
+	ns= p[21]     # one molecule of s yields ns molecules of a (energy) (nutrient efficiency)
 
-    b= 0  # Hack - this variables also should be passed via p rather than defined here but for some reason it didn't work
-    dm= 0.1
-    kb= 0.0095
-    ku= 1
+    b= 0  # Hack 
+	dm= 0.1        # endogenous mRNA degradation rate
+    kb= 0.0095     #
+    ku= 1          # 
 	
-    dmrep = p[22]
-    dprep = p[23]
-    kappa_ini = p[24]
-	wmaxrep = p[25]
-	kbrep= p[26]
-	kurep= p[27]
+    dmrep = p[22]  # heterologous mRNA degradation rate
+    dprep = p[23]  # active protein degradation rate
+    kappa_ini = p[24] # translation initiation efficiency
+	wmaxrep = p[25]   # maximal transcription rate for heterologous gene
+	kbrep= p[26]	  #  
+	kurep= p[27]      # 
 	
 	rmr= u[1] # complex between a ribosome and the mRNA for protein r
 	em= u[2] # enzyme that metabolizes si (nutrinet) into a (energy)
@@ -101,7 +102,17 @@ function HETER_ODE_model!(du,u,p,t)
 	
 end
 
-# repressilator
+###############
+# host coupled with a repressilator
+"""
+    REPR_ODE_model!(du,u,p,t)
+
+
+Defines ODEs for extension of the growth model by Weisse et al, 2015, 
+with effects of translation initiation on the expression of a repressilator synthetic circuit.
+
+Created by Evangelos-Marios Nikolados.
+"""
 function REPR_ODE_model!(du,u,p,t)
 
 	thetar= p[1] # ribosomal threshold amount of energy at which transcription is half maximal 
@@ -233,7 +244,16 @@ function REPR_ODE_model!(du,u,p,t)
 
 end
 
-# NOT gate
+###############
+# host coupled with a NOT gate
+"""
+    NOT_gate_ODE_model!(du,u,p,t)
+
+Defines ODEs for extension of the growth model by Weisse et al, 2015, 
+with effects of translation initiation on the expression of a NOT gate synthetic circuit.
+
+Created by Evangelos-Marios Nikolados.
+"""
 function NOT_gate_ODE_model!(du,u,p,t)
 
 	thetar= p[1] # ribosomal threshold amount of energy at which transcription is half maximal 
@@ -347,7 +367,16 @@ function NOT_gate_ODE_model!(du,u,p,t)
 
 end
 
-# AND gate
+###############
+# host coupled with a AND gate
+"""
+    AND_gate_ODE_model!(du,u,p,t)
+
+Defines ODEs for extension of the growth model by Weisse et al, 2015, 
+with effects of translation initiation on the expression of a AND gate synthetic circuit.
+
+Created by Evangelos-Marios Nikolados.
+"""
 function AND_gate_ODE_model!(du,u,p,t)
 
 	thetar= p[1] # ribosomal threshold amount of energy at which transcription is half maximal 
@@ -476,7 +505,16 @@ function AND_gate_ODE_model!(du,u,p,t)
 
 end
 
-# NAND gate
+###############
+# host coupled with a NAND gate
+"""
+    NAND_gate_ODE_model!(du,u,p,t)
+
+Defines ODEs for extension of the growth model by Weisse et al, 2015, 
+with effects of translation initiation on the expression of a NAND gate synthetic circuit.
+
+Created by Evangelos-Marios Nikolados.
+"""
 function NAND_gate_ODE_model!(du,u,p,t)
 
 	thetar= p[1] # ribosomal threshold amount of energy at which transcription is half maximal 
