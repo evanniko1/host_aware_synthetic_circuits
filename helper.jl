@@ -824,3 +824,15 @@ end
 function vector_to_matrix(vector)
     return reduce(hcat, vector)
 end
+
+function save_figure(; img_to_sv, model_def, custom_suffix = "", path_to_sv = "./figures/")
+    if custom_suffix == ""
+        savefig(img_to_sv, sv_path * string(model_def)[1:end-11] * "_" * string(length(readdir(path_to_sv))+1))
+    else
+        if typeof(custom_suffix) == String
+            savefig(img_to_sv, sv_path * string(model_def)[1:end-11] * "_" * custom_suffix)
+        else
+            savefig(img_to_sv, sv_path * string(model_def)[1:end-11] * "_" * string(custom_suffix))
+        end
+    end
+end

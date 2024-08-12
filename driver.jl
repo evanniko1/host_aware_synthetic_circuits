@@ -3,23 +3,27 @@ using DifferentialEquations
 using Sundials
 using Plots
 
-# import custom stuff
-include("values.jl")
-include("helper.jl")
-include("host_aware_models.jl")
+# import custom code
+include("values.jl")    # values for initial conditions 
+include("helper.jl")    # code for parameter sweeps and to organize ODE solutions for better handling 
+include("host_aware_models.jl") # ODE definitions for host-aware synthetic circuits
 
-# time span fo
+# path to save figures
+sv_path = "./figures/"
+
+# time span
 tspan = (0.0, 1e9)
-##########
 
 # exposed relevant parameters
 ns = 0.5
 dprep = log(2)/4 # default value: log(2)/4
-kappa_ini = 0.8
+kappa_ini = 0.8  # 
 
 # choose a host-aware model
 model_def = HETER_ODE_model!
 
+# specify initial conditions and parameter values
+# for different host-aware models
 if model_def == HETER_ODE_model!
     kurep = exp10(-2.6575) # default value: exp10(-2.6575), ku_rng[end]
     kbrep = exp10(-1.3335) # default value: exp10(-1.3335), kb_rng[end]
@@ -121,6 +125,7 @@ end
 # assemble into single parameter vector
 append!(p, het_p)
 
+# create a problem dictionary
 ode_problem_dict = create_problem_dict!(model_choice = model_def, 
                                         init_values = u0, 
                                         params_values = p, 
@@ -134,38 +139,15 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
 ##########
 # one run of the model
 #solve_once = solve_ode_problem!(ode_problem_wrap = ode_problem_dict);
-
-# specify and solve ODE problem
 #plot(solve_once) # time trajectories for all species; the plot is interactive
-#plot(solve_once[9, :])
-#plot(solve_once[18, :])
-#plot(solve_once[21, :])
-#plot(solve_once[24, :])
-# time trajectory for heterologous protein
 
-##########
 # reproduce the non-linear relationship from Cambray et al, 2018
 phet_content, grate, ribosomal_content = trans_initiation!(ode_problem_dict = ode_problem_dict, range_size = 50, kini_lower = -0.65, kini_upper = 0);
 
-#phet, grate, biomass, ribosomal_content, mRNA_content = trans_initiation!(ode_problem_dict = ode_problem_dict, range_size = 50, kini_lower = -0.65, kini_upper = 0);
 plot(phet_content["protein_1"], grate, fmt = :svg)
 plot(grate)
-#plot(ribosomal_content["free_ribo"])
-#plot(ribosomal_content["non_init_complexes_1"])
-#plot!(ribosomal_content["pre_init_het"])
 
-#total_endogenous_ribo_bound = ribosomal_content["metab_ribo"] + ribosomal_content["ribo_ribo"] + ribosomal_content["housek_ribo"] + ribosomal_content["transf_ribo"]
-#plot(total_endogenous_ribo_bound)
-
-#plot(mRNA_content["ribo_mRNA"])
-
-
-# TEST ZONE
-# single perturbation -- WORKS
-#wmaxrep: param_index = 22, range_bounds = (0, 3)
-#kb_rep: param_index = 23, range_bounds = (-2, 0)
-#ku_rep: param_index = 24, range_bounds = (-4, -2)
-#kappa_ini: param_index = 27, range_bounds = (-0.65, 0)
+# single perturbation
 prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict, 
                                             param_index = 25, 
                                             range_bounds = (0, 4), 
@@ -174,11 +156,7 @@ plot(prot_exp_1D["protein_1"]) # Fig 2.3B
 plot(grate_1D) # Fig 2.3B (inset)
 plot(prot_exp_1D["protein_1"], grate_1D)
 
-# double perturbation -- WORKS
-#plotly();
-## OLD
-#prot_exp_2D, grate_2D, vrate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, param_index_inner = 22, param_index_outer = 27, range_bounds_inner = (0, 3), range_bounds_outer = (-0.65, 0), range_size = 50);
-## NEW 
+# double perturbation
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
                                             param_index_inner = 25, 
                                             param_index_outer = 28, 
@@ -195,18 +173,14 @@ plot(prot_exp_RBS["protein_1"], grate_RBS)
 prot_exp_RBS_only, grate_RBS_only = perturb_RBS!(ode_problem_dict = ode_problem_dict, RBS_bounds = (-4, -2, 0), range_size = 50)
 plot(prot_exp_RBS_only["protein_1"], grate_RBS_only)
 
-
-#using Plots
-#gr()
-#data = rand(21,100)
-#heatmap(1:size(data,1),
-#    1:size(data,2), data,
-#    c=cgrad([:blue, :white,:red, :yellow]),
-#    xlabel="x values", ylabel="y values",h
-#    title="My title")
-
-
 # plot heatmap
 heatmap(vector_to_matrix(prot_exp_2D["protein_4"]))
 
-heatmap(vector_to_matrix(grate_2D))
+
+
+
+
+
+save_figure(img_to_sv = heatmap(vector_to_matrix(grate_2D)), 
+            model_def = model_def, 
+            custom_suffix = "")
