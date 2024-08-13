@@ -313,7 +313,13 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_bounds_inner = (0, 1), 
                                             range_bounds_outer = (0, 4), 
                                             range_size = 50);
-plot(prot_exp_2D["protein_1"], grate_2D)
+
+# plot results                                            
+plot(prot_exp_2D["protein_1"], 
+     grate_2D, 
+     palette = palette([:purple, :green], 50), 
+     legend = false
+     )
 
 # ADD INSTRUCTIONS FOR INSETS IN FIG 3.7C
 
@@ -327,6 +333,12 @@ prot_exp_RBS, grate_RBS = perturb_param_w_RBS!(ode_problem_dict = ode_problem_di
                                                range_bounds = (0, 1), 
                                                RBS_bounds = (-4, -2, 0), 
                                                range_size = 50)
-plot(prot_exp_RBS["protein_1"], grate_RBS)
+                                               
+# plot results                                           
+plot(prot_exp_RBS["protein_1"], 
+     grate_RBS,
+     palette = palette([:purple, :green], 50), 
+     legend = false
+     )
 
 # ADD INSTRUCTIONS FOR INSETS IN FIG 3.8C

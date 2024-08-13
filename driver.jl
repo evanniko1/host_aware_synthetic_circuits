@@ -137,9 +137,9 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
                                         show_progress=true)
 
 ##########
-# one run of the model
-#solve_once = solve_ode_problem!(ode_problem_wrap = ode_problem_dict);
-#plot(solve_once) # time trajectories for all species; the plot is interactive
+# solve a specified system and plot the change of species over time
+solve_once = solve_ode_problem!(ode_problem_wrap = ode_problem_dict);
+plot(solve_once) 
 
 # reproduce the non-linear relationship from Cambray et al, 2018
 phet_content, grate, ribosomal_content = trans_initiation!(ode_problem_dict = ode_problem_dict, range_size = 50, kini_lower = -0.65, kini_upper = 0);
@@ -158,29 +158,40 @@ plot(prot_exp_1D["protein_1"], grate_1D)
 
 # double perturbation
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
-                                            param_index_inner = 25, 
-                                            param_index_outer = 28, 
-                                            range_bounds_inner = (0, 4), 
+                                            param_index_inner = 24, 
+                                            param_index_outer = 25, 
+                                            range_bounds_inner = (0, 1), 
                                             range_bounds_outer = (0, 4), 
-                                            range_size = 25);
-plot(prot_exp_2D["protein_3"], grate_2D)
+                                            range_size = 50);
+plot(prot_exp_2D["protein_1"], 
+     grate_2D, 
+     palette = palette([:purple, :green], 50), 
+     legend = false
+     )
 
 #plotly();
-prot_exp_RBS, grate_RBS = perturb_param_w_RBS!(ode_problem_dict = ode_problem_dict, param_index = 24, range_bounds = (0, 3), RBS_bounds = (-4, -2, 0), range_size = 50)
-plot(prot_exp_RBS["protein_1"], grate_RBS)
+prot_exp_RBS, grate_RBS = perturb_param_w_RBS!(ode_problem_dict = ode_problem_dict, 
+                                               param_index = 24, 
+                                               range_bounds = (0, 1), 
+                                               RBS_bounds = (-4, -2, 0), 
+                                               range_size = 50)
+plot(prot_exp_RBS["protein_1"], 
+     grate_RBS,
+     palette = palette([:purple, :green], 50), 
+     legend = false
+     )
 
 #plotly();
 prot_exp_RBS_only, grate_RBS_only = perturb_RBS!(ode_problem_dict = ode_problem_dict, RBS_bounds = (-4, -2, 0), range_size = 50)
 plot(prot_exp_RBS_only["protein_1"], grate_RBS_only)
 
 # plot heatmap
-heatmap(vector_to_matrix(prot_exp_2D["protein_4"]))
+nn = heatmap(vector_to_matrix(prot_exp_2D["protein_3"]))
+display(nn)
+
+heatmap(vector_to_matrix(grate_2D))
 
 
-
-
-
-
-save_figure(img_to_sv = heatmap(vector_to_matrix(grate_2D)), 
+save_figure(img_to_sv = nn, 
             model_def = model_def, 
-            custom_suffix = "")
+            custom_suffix = "");
