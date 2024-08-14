@@ -136,7 +136,7 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
                                         maxiters = 1e7,
                                         show_progress=true)
 
-##########
+#--------------#
 # solve a specified system and plot the change of species over time
 solve_once = solve_ode_problem!(ode_problem_wrap = ode_problem_dict);
 plot(solve_once) 
@@ -147,6 +147,7 @@ phet_content, grate, ribosomal_content = trans_initiation!(ode_problem_dict = od
 plot(phet_content["protein_1"], grate, fmt = :svg)
 plot(grate)
 
+#--------------#
 # single perturbation
 prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict, 
                                             param_index = 25, 
@@ -156,6 +157,7 @@ plot(prot_exp_1D["protein_1"]) # Fig 2.3B
 plot(grate_1D) # Fig 2.3B (inset)
 plot(prot_exp_1D["protein_1"], grate_1D)
 
+#--------------#
 # double perturbation
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
                                             param_index_inner = 24, 
@@ -163,13 +165,14 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_bounds_inner = (0, 1), 
                                             range_bounds_outer = (0, 4), 
                                             range_size = 50);
+
 plot(prot_exp_2D["protein_1"], 
      grate_2D, 
      palette = palette([:purple, :green], 50), 
      legend = false
      )
 
-#plotly();
+#--------------#
 prot_exp_RBS, grate_RBS = perturb_param_w_RBS!(ode_problem_dict = ode_problem_dict, 
                                                param_index = 24, 
                                                range_bounds = (0, 1), 
@@ -181,17 +184,14 @@ plot(prot_exp_RBS["protein_1"],
      legend = false
      )
 
-#plotly();
+#--------------#
 prot_exp_RBS_only, grate_RBS_only = perturb_RBS!(ode_problem_dict = ode_problem_dict, RBS_bounds = (-4, -2, 0), range_size = 50)
 plot(prot_exp_RBS_only["protein_1"], grate_RBS_only)
 
 # plot heatmap
 nn = heatmap(vector_to_matrix(prot_exp_2D["protein_3"]))
-display(nn)
 
-heatmap(vector_to_matrix(grate_2D))
-
-
+# save figure
 save_figure(img_to_sv = nn, 
             model_def = model_def, 
             custom_suffix = "");
