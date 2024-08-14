@@ -382,7 +382,7 @@ Created by Evangelos-Marios Nikolados.
 function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size=10)
 	# initialize phenotype, growth rate, and total translation rate result vectors
 
-    grate_sols, biomass_sols = [], []
+    grate_sols, param_vals = [], []
 
 	# heterologous
 	if ode_problem_dict["model_def"] == HETER_ODE_model!
@@ -397,23 +397,21 @@ function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range
 		phet_sols_1, phet_sols_2, phet_sols_3, phet_sols_4 = [], [], [], []
 	else
 	end
-
-    #phet_sols, grate_sols, ttrate_sols, biomass_sols = [], [], [], []
     
     for (_, param_to_perturb) in enumerate(exp10.(range(range_bounds[1], range_bounds[2], length=range_size)))
         # update value for parameter
 		ode_problem_dict["parameters"][param_index] = param_to_perturb
+		# keep track of parameter values -- use later to plot axes
+		push!(param_vals, param_to_perturb)
     
         # define & solve the new ODE problem
 		sol = solve_ode_problem!(ode_problem_wrap = ode_problem_dict)
 
 		# calculate relevant rates
-		ttrate, grate = calc_growth_rate!(sol = sol, kappa_ini = ode_problem_dict["parameters"][24], gmax = gmax, Kgamma = Kgamma, model_def = ode_problem_dict["model_def"])
+		_, grate = calc_growth_rate!(sol = sol, kappa_ini = ode_problem_dict["parameters"][24], gmax = gmax, Kgamma = Kgamma, model_def = ode_problem_dict["model_def"])
 		het_expr_dict = calc_het_expr!(sol = sol, model_def = ode_problem_dict["model_def"])
-		#biomass_ = calc_biomass!(sol=sol, kappa_ini = ode_problem_dict["parameters"][24], nr = ode_problem_dict["parameters"][20])
 
         # push what we need
-        #push!(phet_sols, het_expr)
 		if ode_problem_dict["model_def"] == HETER_ODE_model!
 			push!(phet_sols_1, het_expr_dict["protein_1"])
 
@@ -441,10 +439,7 @@ function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range
 			println("something went wrong ...")
 		end
         
-		#push!(phet_sols, het_expr)
         push!(grate_sols, grate)
-		#push!(ttrate_sols, ttrate)
-		#push!(biomass_sols, biomass_)
 
     end
 
@@ -479,6 +474,8 @@ function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range
 		println("something went wrong ...")
 	end
 
+	# add parameter values
+	het_protein_content["parameter_values"] = param_vals
 
     #return phet_sols, grate_sols, ttrate_sols, biomass_sols
 	return het_protein_content, grate_sols
@@ -499,11 +496,7 @@ Created by Evangelos-Marios Nikolados.
 """
 function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_outer, range_bounds_inner, range_bounds_outer, range_size = 10)
 	# initialize phenotype, growth rate, and total translation rate result vectors
-
-
-	#phet_sols, grate_sols, ttrate_sols = [], [], []
-
-	grate_sols = []
+	grate_sols, param_vals_inner, param_vals_outer = [], [], []
 	# heterologous
 	if ode_problem_dict["model_def"] == HETER_ODE_model!
 		phet_sols_1 = []
@@ -521,10 +514,9 @@ function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_
 	for (_, outer_param_to_perturb) in enumerate(exp10.(range(range_bounds_outer[1], range_bounds_outer[2], length = range_size)))
 		# update value for outer parameter loop
 		ode_problem_dict["parameters"][param_index_outer] = outer_param_to_perturb
+		push!(param_vals_outer, outer_param_to_perturb)
 
 		# INNER LOOP
-		#phet_pert_one, grate_pert_one, ttrate_pert_one = perturb_one_param!(ode_problem_dict = ode_problem_dict, param_index = param_index_inner, range_bounds = range_bounds_inner, range_size = range_size)
-		
 		het_expr_dict, grate_pert_one = perturb_one_param!(ode_problem_dict = ode_problem_dict, param_index = param_index_inner, range_bounds = range_bounds_inner, range_size = range_size)
         
 		# push what we need
@@ -554,9 +546,9 @@ function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_
 		else
 			println("something went wrong ...")
 		end
-        #push!(phet_sols, phet_pert_one)
+
         push!(grate_sols, grate_pert_one)
-		#push!(ttrate_sols, ttrate_pert_one)
+		push!(param_vals_inner, values(het_expr_dict["parameter_values"]))
 	end
 
 	# organize heterolous expression in a dictionary
@@ -591,7 +583,8 @@ function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_
 		println("something went wrong ...")
 	end
 	
-	#return phet_sols, grate_sols, ttrate_sols
+	het_protein_content["parameter_values_inner"] = param_vals_inner[1]
+	het_protein_content["parameter_values_outer"] = param_vals_outer
 	return het_protein_content, grate_sols
 end
 
