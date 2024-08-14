@@ -367,7 +367,7 @@ Returns three vectors:
 Created by Evangelos-Marios Nikolados.
 """
 function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range_size=10)
-	# initialize phenotype, growth rate, and total translation rate result vectors
+	# initialize phenotype and growth rate result vectors
 
     grate_sols, param_vals = [], []
 
@@ -464,7 +464,6 @@ function perturb_one_param!(; ode_problem_dict, param_index, range_bounds, range
 	# add parameter values
 	het_protein_content["parameter_values"] = param_vals
 
-    #return phet_sols, grate_sols, ttrate_sols, biomass_sols
 	return het_protein_content, grate_sols
 end
 
@@ -482,7 +481,7 @@ Returns three vectors of vectors:
 Created by Evangelos-Marios Nikolados.
 """
 function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_outer, range_bounds_inner, range_bounds_outer, range_size = 10)
-	# initialize phenotype, growth rate, and total translation rate result vectors
+	# initialize phenotype and growth rate result vectors
 	grate_sols, param_vals_inner, param_vals_outer = [], [], []
 	# heterologous
 	if ode_problem_dict["model_def"] == HETER_ODE_model!
