@@ -166,7 +166,7 @@ Created by Evangelos-Marios Nikolados.
 """
 function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.65, kini_upper = 0)
 
-    grate_sols, biomass_sols = [], []
+    grate_sols, param_vals = [], []
 	# lists for ribosomal (bound & free) content
 	# heterologous
 	if ode_problem_dict["model_def"] == HETER_ODE_model!
@@ -193,13 +193,11 @@ function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.
 	ribo_ribo_sols, housek_ribo_sols, metab_ribo_sols, transf_ribo_sols = [], [], [], []
 	# free
 	free_ribo_sols = []
-	
-	# list for heterologous and endogenous mRNA
-	#het_mRNA_sols, housek_mRNA_sols, metab_mRNA_sols, transf_mRNA_sols, ribo_mRNA_sols = [], [], [], [], []
 
     for (_, kappa_ini) in enumerate(exp10.(range(kini_lower, kini_upper, length=range_size)))
         # update kappa_ini value
 		ode_problem_dict["parameters"][24] = kappa_ini
+		push!(param_vals, kappa_ini)
     
         # define & solve the new ODE problem
 		sol = solve_ode_problem!(ode_problem_wrap = ode_problem_dict)
@@ -207,9 +205,7 @@ function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.
 		# calculate relevant rates
 		_, grate = calc_growth_rate!(sol = sol, kappa_ini = kappa_ini, gmax = gmax, Kgamma = Kgamma, model_def = ode_problem_dict["model_def"])
 		het_expr_dict = calc_het_expr!(sol = sol, model_def = ode_problem_dict["model_def"])
-		#biomass_ = calc_biomass!(sol = sol, kappa_ini = kappa_ini, nr = ode_problem_dict["parameters"][20])
 		complexes_dict = calc_ribo_content!(sol = sol, kappa_ini = kappa_ini, model_def = ode_problem_dict["model_def"])
-		#het_mrna, housek_mrna, metab_mrna, transf_mrna, ribo_mrna = calc_mRNA_content!(sol = sol)
 
 		# CONDITIONALS
         # push what we need
@@ -269,25 +265,12 @@ function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.
 			println("something went wrong ...")
 		end
         
-		#push!(phet_sols, het_expr)
         push!(grate_sols, grate)
-		#push!(biomass_sols, biomass_)
-		# anything ribo
-		#push!(init_het_sols, init_het)
-		#push!(pre_init_het_sols, pre_init_het)
-
 		push!(ribo_ribo_sols, complexes_dict["ribo_complexes"])
 		push!(housek_ribo_sols, complexes_dict["housek_complexes"])
 		push!(metab_ribo_sols, complexes_dict["metab_complexes"])
 		push!(transf_ribo_sols, complexes_dict["trans_complexes"])
 		push!(free_ribo_sols, complexes_dict["free_ribo"])
-
-		# anything mRNA
-		#push!(het_mRNA_sols, het_mrna)
-		#push!(housek_mRNA_sols, housek_mrna)
-		#push!(metab_mRNA_sols, metab_mrna)
-		#push!(transf_mRNA_sols, transf_mrna)
-		#push!(ribo_mRNA_sols, ribo_mrna)
 
     end
 	# organize all lists of solutions for mRNA-ribosomal complexes in a dict
@@ -349,20 +332,14 @@ function trans_initiation!(; ode_problem_dict, range_size = 10, kini_lower = -0.
 		println("something went wrong ...")
 	end
 
+	het_protein_content["kappa_ini_values"] = param_vals
+
 	ribosomal_content["ribo_ribo"]   = ribo_ribo_sols
 	ribosomal_content["housek_ribo"] = housek_ribo_sols
 	ribosomal_content["transf_ribo"] = transf_ribo_sols
 	ribosomal_content["metab_ribo"]  = metab_ribo_sols
 	ribosomal_content["free_ribo"]   = free_ribo_sols
 
-	# organize everything mRNA in a dict
-	#mRNA_content = Dict("het_mRNA"   => het_mRNA_sols,
-	#					"housek_mRNA"=> housek_mRNA_sols,
-	#					"metab_mRNA" => metab_mRNA_sols,
-	#					"transf_mRNA"=> transf_mRNA_sols,
-	#					"ribo_mRNA"  => ribo_mRNA_sols)
-
-    #return het_protein_content, grate_sols, biomass_sols, ribosomal_content, mRNA_content
 	return het_protein_content, grate_sols, ribosomal_content
 end
 

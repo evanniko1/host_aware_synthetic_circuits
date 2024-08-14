@@ -57,20 +57,24 @@ prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict,
                                             range_size = 50);
 
 # plot protein expresssion vs induction strength
-prot_exp_het = plot(prot_exp_1D["protein_1"],
+prot_exp_het = plot(prot_exp_1D["parameter_values"],
+                    prot_exp_1D["protein_1"],
                     label = false,
                     xlabel = "gene induction (mRNAs/min)",
-                    ylabel = "expression (# of molecules)")
+                    ylabel = "expression (# of molecules)",
+                    xaxis = :log10)
 
 save_figure(img_to_sv = prot_exp_het, 
             model_def = model_def, 
             custom_suffix = "Figure2_3B"); 
 
 # plot growth rate vs induction strength
-grate_het = plot(grate_1D,
+grate_het = plot(prot_exp_1D["parameter_values"],
+                 grate_1D,
                  label = false,
                  xlabel = "gene induction (mRNAs/min)",
-                 ylabel = "growth rate (min\$^{-1}\$)")
+                 ylabel = "growth rate (min\$^{-1}\$)",
+                 xaxis = :log10)
 
 save_figure(img_to_sv = grate_het,
             model_def = model_def,
@@ -118,20 +122,24 @@ prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict,
                                             range_size = 50);
 
 # plot protein 2 expresssion, i.e. output, vs induction strength
-prot_exp_NOT = plot(prot_exp_1D["protein_2"],
+prot_exp_NOT = plot(prot_exp_1D["parameter_values"],
+                    prot_exp_1D["protein_2"],
                     label = false,
                     xlabel = "input (mRNAs/min)",
-                    ylabel = "output (# of molecules)")
+                    ylabel = "output (# of molecules)",
+                    xaxis = :log10)
 
 save_figure(img_to_sv = prot_exp_NOT,
             model_def = model_def,
             custom_suffix = "Figure2_5B(left)")
 
 # plot growth rate vs induction strength
-grate_NOT = plot(grate_1D,
+grate_NOT = plot(prot_exp_1D["parameter_values"],
+                 grate_1D,
                  label = false,
                  xlabel = "input (mRNAs/min)",
-                 ylabel = "growth rate (min\$^{-1}\$)")
+                 ylabel = "growth rate (min\$^{-1}\$)",
+                 xaxis = :log10)
 
 save_figure(img_to_sv = grate_NOT,
             model_def = model_def,
@@ -189,10 +197,14 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_size = 50);
 
 # plot protein 2 expresssion, i.e. output, vs induction strength
-prot_exp_AND = heatmap(vector_to_matrix(prot_exp_2D["protein_3"]), 
-                                        xlabel = "input 2 (mRNAs/min)",
-                                        ylabel = "input 1 (mRNAs/min)"
-                                        )
+prot_exp_AND = heatmap(prot_exp_2D["parameter_values_inner"],
+                       prot_exp_2D["parameter_values_outer"],
+                       vector_to_matrix(prot_exp_2D["protein_3"]), 
+                       xlabel = "input 2 (mRNAs/min)",
+                       ylabel = "input 1 (mRNAs/min)",
+                       xaxis = :log10,
+                       yaxis = :log10
+                       )
 
 save_figure(img_to_sv = prot_exp_AND,
             model_def = model_def,
@@ -200,9 +212,13 @@ save_figure(img_to_sv = prot_exp_AND,
 
 # plot growth rate vs induction strength
 # plot heatmap
-grate_AND = heatmap(vector_to_matrix(grate_2D),
+grate_AND = heatmap(prot_exp_2D["parameter_values_inner"],
+                    prot_exp_2D["parameter_values_outer"],
+                    vector_to_matrix(grate_2D), 
                     xlabel = "input 2 (mRNAs/min)",
-                    ylabel = "input 1 (mRNAs/min)"
+                    ylabel = "input 1 (mRNAs/min)",
+                    xaxis = :log10,
+                    yaxis = :log10
                     )
                     
 save_figure(img_to_sv = grate_AND,
@@ -263,10 +279,14 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_size = 50);
 
 # plot protein 2 expresssion, i.e. output, vs induction strength
-prot_exp_NAND = heatmap(vector_to_matrix(prot_exp_2D["protein_4"]), 
-                                         xlabel = "input 2 (mRNAs/min)",
-                                         ylabel = "input 1 (mRNAs/min)"
-                                         )
+prot_exp_NAND = heatmap(prot_exp_2D["parameter_values_inner"],
+                       prot_exp_2D["parameter_values_outer"],
+                       vector_to_matrix(prot_exp_2D["protein_4"]), 
+                       xlabel = "input 2 (mRNAs/min)",
+                       ylabel = "input 1 (mRNAs/min)",
+                       xaxis = :log10,
+                       yaxis = :log10
+                       );
 
 save_figure(img_to_sv = prot_exp_NAND,
             model_def = model_def,
@@ -274,10 +294,14 @@ save_figure(img_to_sv = prot_exp_NAND,
 
 # plot growth rate vs induction strength
 # plot heatmap
-grate_NAND = heatmap(vector_to_matrix(grate_2D),
+grate_NAND = heatmap(prot_exp_2D["parameter_values_inner"],
+                     prot_exp_2D["parameter_values_outer"],
+                     vector_to_matrix(grate_2D), 
                      xlabel = "input 2 (mRNAs/min)",
-                     ylabel = "input 1 (mRNAs/min)"
-                     )
+                     ylabel = "input 1 (mRNAs/min)",
+                     xaxis = :log10,
+                     yaxis = :log10
+                     );
                     
 save_figure(img_to_sv = grate_NAND,
             model_def = model_def,
@@ -328,10 +352,11 @@ phet_content, grate, ribosomal_content = trans_initiation!(ode_problem_dict = od
 
 # Figure 3.5A :: protein expression versus growth rate
 HETER_kappa_ini_prot_v_grate = plot(phet_content["protein_1"], 
-                                   grate,
-                                   legend = false,
-                                   xlabel = "expression (# of molecules)",
-                                   ylabel = "growth rate (min\$^{-1}\$)")
+                                    grate,
+                                    legend = false,
+                                    xlabel = "expression (# of molecules)",
+                                    ylabel = "growth rate (min\$^{-1}\$)"
+                                    )
 
 save_figure(img_to_sv = HETER_kappa_ini_prot_v_grate,
             model_def = model_def,
@@ -342,8 +367,9 @@ plot(phet_content["protein_1"]) #top
 plot(grate) #bottom
 
 # Figure 3.5C
-plot(ribosomal_content["non_init_complexes_1"])
-HETER_kappa_ini_complexes = plot!(ribosomal_content["init_complexes_1"],
+plot(phet_content["kappa_ini_values"], ribosomal_content["non_init_complexes_1"])
+HETER_kappa_ini_complexes = plot!(phet_content["kappa_ini_values"],
+                                  ribosomal_content["init_complexes_1"],
                                   legend = false,
                                   xlabel = "\$κ_{ini}\$",
                                   ylabel = "bound ribosomes (het.)")
@@ -352,7 +378,8 @@ save_figure(img_to_sv = HETER_kappa_ini_complexes,
             custom_suffix = "Figure3_5C")
 
 # Figure 3.5D 
-HETER_kappa_ini_endo_complexes = plot(ribosomal_content["metab_ribo"] +
+HETER_kappa_ini_endo_complexes = plot(phet_content["kappa_ini_values"],
+                                      ribosomal_content["metab_ribo"] +
                                       ribosomal_content["ribo_ribo"] +
                                       ribosomal_content["housek_ribo"] +
                                       ribosomal_content["transf_ribo"],
