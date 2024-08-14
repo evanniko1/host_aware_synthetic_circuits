@@ -10,4 +10,4 @@ This repo implements computational models that integrate gene circuits into the 
 - *thesis_figures.jl* contains all necessary code and parameter values to reproduce the results presented in Chapters 2 and 3 of the thesis;
 - *./figures/* contains figures for the main results of Chapters 2 and 3.
 
-
+![Host-circuit modelling](./host_circuit_mdl.png)
