@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/597456824.svg)](https://zenodo.org/doi/10.5281/zenodo.13323360)
+
 # Host-aware modelling of microbial physiology
 
 Heterologous gene expression draws resources from host cells. These resources include vital components to sustain growth and replication, and the resulting *cellular burden* is a widely recognised bottleneck in the design of robust circuits. 
