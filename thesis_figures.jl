@@ -1,4 +1,7 @@
 # This file contains a list of configurations to run the simulations that correspond to all the figures in the thesis.
+# For each figure it is **imperative** to re-execute lines 13-23. This is a fast step.
+# Following this, you need to run the code listed under each respective figure section.
+
 
 # import packages
 using DifferentialEquations
@@ -19,9 +22,9 @@ ns = 0.5           #efficiency of nutrient quality
 dprep = log(2)/4   #active degradation rate for heterologous proteins
 kappa_ini = 0.8
 
-# Chapter 2
-
-#---------------------------------#
+#-------------------#
+#     Chapter 2     #
+#-------------------# 
 
 # Figure 2.3
 # define a host-aware model
@@ -50,7 +53,7 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
 solve_once = solve_ode_problem!(ode_problem_wrap = ode_problem_dict);
 
 # Figure 2.3B
-# parameter sweep for wmaxrep = p[25]
+# parameter sweep for induction strength
 prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict, 
                                             param_index = 25, 
                                             range_bounds = (0, 4), 
@@ -115,7 +118,7 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
                                         maxiters = 1e7,
                                         show_progress=true)
                                   
-# parameter sweep for wmaxrep = p[25] -- here, this corresponds to gate input strength
+# parameter sweep for gate input strength
 prot_exp_1D, grate_1D, = perturb_one_param!(ode_problem_dict = ode_problem_dict, 
                                             param_index = 25, 
                                             range_bounds = (0, 4), 
@@ -188,7 +191,7 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
                                         maxiters = 1e7,
                                         show_progress=true)
 
-# parameter sweep for wmaxrep = p[25] -- here, this corresponds to gate input strength
+# parameter sweep for the strength of the two gate inputs
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
                                             param_index_inner = 25, 
                                             param_index_outer = 28, 
@@ -196,7 +199,7 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_bounds_outer = (0, 4), 
                                             range_size = 50);
 
-# plot protein 2 expresssion, i.e. output, vs induction strength
+# plot protein 3 expresssion, i.e. output, vs induction strength
 prot_exp_AND = heatmap(prot_exp_2D["parameter_values_inner"],
                        prot_exp_2D["parameter_values_outer"],
                        vector_to_matrix(prot_exp_2D["protein_3"]), 
@@ -270,7 +273,7 @@ ode_problem_dict = create_problem_dict!(model_choice = model_def,
                                         show_progress=true)
 
 
-# parameter sweep for wmaxrep = p[25] -- here, this corresponds to gate input strength
+# parameter sweep for the strength of the two gate inputs
 prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict, 
                                             param_index_inner = 25, 
                                             param_index_outer = 28, 
@@ -278,7 +281,7 @@ prot_exp_2D, grate_2D = perturb_two_params!(ode_problem_dict = ode_problem_dict,
                                             range_bounds_outer = (0, 4), 
                                             range_size = 50);
 
-# plot protein 2 expresssion, i.e. output, vs induction strength
+# plot protein 4 expresssion, i.e. output, vs induction strength
 prot_exp_NAND = heatmap(prot_exp_2D["parameter_values_inner"],
                        prot_exp_2D["parameter_values_outer"],
                        vector_to_matrix(prot_exp_2D["protein_4"]), 
@@ -314,10 +317,11 @@ save_figure(img_to_sv = grate_NAND,
 # Figure 2.9 :: change nutrient quality values and execute induction strength
 #               perturbations for AND and NAND gates with RBS = 1 for gate output
 
-#---------------------------------#
-#---------------------------------#
 
-# Chapter 3
+
+#-------------------#
+#     Chapter 3     #
+#-------------------# 
 
 # Figure 3.5
 model_def = HETER_ODE_model!
@@ -450,7 +454,7 @@ save_figure(img_to_sv = HETER_kappa_ini_w_induction,
             model_def = model_def,
             custom_suffix = "Figure3_7B")
 
-# ADD INSTRUCTIONS FOR INSETS IN FIG 3.7C
+# Insets for Fig. 3.7C :: set new induction strength values for the HETER_ODE_model and execute the trans_initiation! function.
 
 #---------------------------------#
 
@@ -475,4 +479,5 @@ HETER_kappa_ini_w_RBS = plot(prot_exp_RBS["protein_1"],
 save_figure(img_to_sv = HETER_kappa_ini_w_RBS,
             model_def = model_def,
             custom_suffix = "Figure3_8B")
-# ADD INSTRUCTIONS FOR INSETS IN FIG 3.8C
+        
+# Insets for Fig. 3.8C :: set new RBS values for the HETER_ODE_model and execute the trans_initiation! function.
