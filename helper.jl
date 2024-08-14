@@ -26,6 +26,15 @@ function create_problem_dict!(; model_choice, init_values, params_values, tspan,
 	return ode_problem_wrap
 end
 
+"""
+	calc_growth_rate!
+
+Accepts as input a solved ODE system.
+Calculates growth rate for different host-aware synthetic circuits.
+Returns values for growth rate and total translation rate.
+
+Created by Evangelos-Marios Nikolados
+"""
 function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8, model_def = HETER_ODE_model!)
 	if model_def == HETER_ODE_model!
 		ttrate = (sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + kappa_ini*sol[end][17])*(gmax*sol[end][14]/(Kgamma + sol[end][14]))
@@ -46,16 +55,14 @@ function calc_growth_rate!(; sol, kappa_ini, gmax, Kgamma, M = 1e8, model_def = 
 	return ttrate, grate
 end
 
-function calc_biomass!(; sol, kappa_ini, nr)
-	protein_biomass = sol[end][2] + sol[end][5] + sol[end][9] + sol[end][13] + sol[end][15]
-	trans_ribo_biomass = nr*(sol[end][1] + sol[end][3] + sol[end][4] + sol[end][6] + (kappa_ini*sol[end][17]))
-	pre_ini_biomass = nr*(1-kappa_ini)*sol[end][17]
+"""
+	calc_het_expr!
 
-	total_biomass = protein_biomass + trans_ribo_biomass + pre_ini_biomass
+Accepts as input a solved ODE system.
+Returns dictionary of values for protein expression.
 
-	return total_biomass
-end
-
+Created by Evangelos-Marios Nikolados
+"""
 function calc_het_expr!(; sol, model_def = HETER_ODE_model!)
 	if model_def == HETER_ODE_model!
 		protein_expression_dict = Dict("protein_1" => sol[end][15])
@@ -83,6 +90,14 @@ function calc_het_expr!(; sol, model_def = HETER_ODE_model!)
 	return protein_expression_dict
 end
 
+"""
+	calc_het_expr!
+
+Accepts as input a solved ODE system.
+Returns dictionary of values for ribosomal content.
+
+Created by Evangelos-Marios Nikolados
+"""
 function calc_ribo_content!(; sol, kappa_ini, model_def = HETER_ODE_model!)
 
 	# heterologous complexes
@@ -132,19 +147,14 @@ function calc_ribo_content!(; sol, kappa_ini, model_def = HETER_ODE_model!)
 	return complexes_dict
 end
 
-function calc_mRNA_content!(; sol)
-	# heterologous mRNA
-	het_mrna = sol[end][16]
-	# endogenous mRNA
-	housek_mrna = sol[end][11]
-	metab_mrna  = sol[end][8]
-	transf_mrna = sol[end][7]
-	ribo_mrna   = sol[end][12]
+"""
+	solve_ode_problem!
 
-	return het_mrna, housek_mrna, metab_mrna, transf_mrna, ribo_mrna
+Creates the ODEProblem object and passes it to the solver.
+Returns a sol object containing the solved ODE system.
 
-end
-
+Created by Evangelos-Marios Nikolados
+"""
 function solve_ode_problem!(; ode_problem_wrap)
 	prob = ODEProblem(ode_problem_wrap["model_def"], ode_problem_wrap["initial_conditions"], ode_problem_wrap["time_span"], ode_problem_wrap["parameters"])
 	sol = solve(prob, ode_problem_wrap["ode_solver"], abstol=ode_problem_wrap["solver_abstol"],reltol=ode_problem_wrap["solver_reltol"], maxiters=ode_problem_wrap["max_iters"], progress=ode_problem_wrap["progress"], isoutofdomain = (m,p,t) -> any(x->x<0, m))
@@ -565,8 +575,145 @@ function perturb_two_params!(; ode_problem_dict, param_index_inner, param_index_
 	return het_protein_content, grate_sols
 end
 
+"""
+	perturb__RBS!(; ode_problem_dict, RBS_bounds, range_size)
+
+Helper function to perturb the RBS of a given mRNA, defined as the ratio of binding and unbinding rates.
+RBS bounds are used to determing the lower and upper ranges for the binding and unbinding rates.
+Then, they are log10() transformed. Finally, range_size specifies log-spaced sampling steps.
+
+Returns three vectors of vectors:
+     i.   heterologous protein expression
+     ii.  growth rate
+	 iii. total translation rate
+
+Created by Evangelos-Marios Nikolados.
+"""
+function perturb_RBS!(; ode_problem_dict, RBS_bounds, range_size = 10)
+    # initialize phenotype and growth rate results vectors
+
+	grate_sols = []
+	# heterologous
+	if ode_problem_dict["model_def"] == HETER_ODE_model!
+		phet_sols_1 = []
+	elseif ode_problem_dict["model_def"] == REPR_ODE_model!
+		phet_sols_1, phet_sols_2, phet_sols_3 = [], [], []
+	elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
+		phet_sols_1, phet_sols_2 = [], [], []
+	elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
+		phet_sols_1, phet_sols_2, phet_sols_3 = [], [], []
+	elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
+		phet_sols_1, phet_sols_2, phet_sols_3, phet_sols_4 = [], [], [], []
+	else
+	end
+    # generate RBS bounds :: RBS is degined as the ratio kb/ku
+    kb_rng = exp10.(range(RBS_bounds[2], RBS_bounds[3], length = range_size))
+    ku_rng = reverse(exp10.(range(RBS_bounds[1], RBS_bounds[2], length = range_size)))
+
+    for (kbrep_v, kurep_v) in zip(kb_rng, ku_rng)
+        # assign kb and ku values for the heterologous reporter protein
+		if ode_problem_dict["model_def"] == HETER_ODE_model!
+			ode_problem_dict["parameters"][26], ode_problem_dict["parameters"][27] = kbrep_v, kurep_v
+		elseif ode_problem_dict["model_def"] == REPR_ODE_model!
+			ode_problem_dict["parameters"][26], ode_problem_dict["parameters"][27] = kbrep_v, kurep_v
+			ode_problem_dict["parameters"][29], ode_problem_dict["parameters"][30] = kbrep_v, kurep_v
+			ode_problem_dict["parameters"][32], ode_problem_dict["parameters"][33] = kbrep_v, kurep_v
+		elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
+			ode_problem_dict["parameters"][29], ode_problem_dict["parameters"][30] = kbrep_v, kurep_v
+		elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
+			ode_problem_dict["parameters"][32], ode_problem_dict["parameters"][33] = kbrep_v, kurep_v
+		elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
+			ode_problem_dict["parameters"][35], ode_problem_dict["parameters"][36] = kbrep_v, kurep_v
+		else
+			println("something went wrong ... check the model specified")
+		end
+
+        # define & solve the new ODE problem
+		sol = solve_ode_problem!(ode_problem_wrap = ode_problem_dict)
+
+		# calculate relevant rates
+		_, grate = calc_growth_rate!(sol = sol, kappa_ini = ode_problem_dict["parameters"][24], gmax = gmax, Kgamma = Kgamma, model_def = ode_problem_dict["model_def"])
+		het_expr_dict = calc_het_expr!(sol = sol, model_def = ode_problem_dict["model_def"])
+
+		# CONDITIONALS
+        # push what we need
+		if ode_problem_dict["model_def"] == HETER_ODE_model!
+			push!(phet_sols_1, het_expr_dict["protein_1"])
+		elseif ode_problem_dict["model_def"] == REPR_ODE_model!
+			push!(phet_sols_1, het_expr_dict["protein_1"])
+			push!(phet_sols_2, het_expr_dict["protein_2"])
+			push!(phet_sols_3, het_expr_dict["protein_3"])
+
+		elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
+			push!(phet_sols_1, het_expr_dict["protein_1"])
+			push!(phet_sols_2, het_expr_dict["protein_2"])
+
+		elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
+			push!(phet_sols_1, het_expr_dict["protein_1"])
+			push!(phet_sols_2, het_expr_dict["protein_2"])
+			push!(phet_sols_3, het_expr_dict["protein_3"])
+
+		elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
+			push!(phet_sols_1, het_expr_dict["protein_1"])
+			push!(phet_sols_2, het_expr_dict["protein_2"])
+			push!(phet_sols_3, het_expr_dict["protein_3"])
+			push!(phet_sols_4, het_expr_dict["protein_4"])
+		else
+			println("something went wrong ...")
+		end
+        
+        push!(grate_sols, grate)
+	end
+
+	if ode_problem_dict["model_def"] == HETER_ODE_model!
+
+		het_protein_content = Dict("protein_1" => phet_sols_1)
+
+	elseif ode_problem_dict["model_def"] == REPR_ODE_model!
+		
+		het_protein_content = Dict("protein_1" => phet_sols_1,
+								   "protein_2" => phet_sols_2,
+								   "protein_3" => phet_sols_3)	
+
+	elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
+
+		het_protein_content = Dict("protein_1" => phet_sols_1,
+								   "protein_2" => phet_sols_2)	
+
+	elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
+
+		het_protein_content = Dict("protein_1" => phet_sols_1,
+								   "protein_2" => phet_sols_2,
+								   "protein_3" => phet_sols_3)	
+
+	elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
+
+		het_protein_content = Dict("protein_1" => phet_sols_1,
+								   "protein_2" => phet_sols_2,
+								   "protein_3" => phet_sols_3,
+								   "protein_4" => phet_sols_4)	
+	else
+		println("something went wrong ...")
+	end
+
+	return het_protein_content, grate_sols
+end
+
+"""
+	perturb_param_w_RBS!(; ode_problem_dict, param_index, range_bounds, RBS_bounds, range_size)
+
+Helper function to perturb RBS and one user-specified parameter of the model. Parameter index specifies the parameter to perturb,
+range bounds are then log10() transformed, and range_size specifies log-spaced sampling steps. The same apply to RBS.
+
+Returns three vectors of vectors:
+     i.   heterologous protein expression
+     ii.  growth rate
+	 iii. total translation rate
+
+Created by Evangelos-Marios Nikolados.
+"""
 function perturb_param_w_RBS!(; ode_problem_dict, param_index, range_bounds, RBS_bounds, range_size = 10)
-    # initialize phenotype, growth rate, and total translation rate results vectors
+    # initialize phenotype and growth rate results vectors
 
 	grate_sols = []
 	# heterologous
@@ -634,9 +781,9 @@ function perturb_param_w_RBS!(; ode_problem_dict, param_index, range_bounds, RBS
 		else
 			println("something went wrong ...")
 		end
-        #push!(phet_sols, phet_pert_one)
+
         push!(grate_sols, grate_pert_one)
-		#push!(ttrate_sols, ttrate_pert_one)
+
 	end
 	
 	# organize heterolous expression in a dictionary
@@ -671,130 +818,27 @@ function perturb_param_w_RBS!(; ode_problem_dict, param_index, range_bounds, RBS
 		println("something went wrong ...")
 	end
 	
-	#return phet_sols, grate_sols, ttrate_sols
 	return het_protein_content, grate_sols
 end
 
-function perturb_RBS!(; ode_problem_dict, RBS_bounds, range_size = 10)
-    # initialize phenotype, growth rate, and total translation rate results vectors
-    
-	#phet_sols, grate_sols, ttrate_sols = [], [], []
+"""
+	vector_to_matrix
 
-	grate_sols = []
-	# heterologous
-	if ode_problem_dict["model_def"] == HETER_ODE_model!
-		phet_sols_1 = []
-	elseif ode_problem_dict["model_def"] == REPR_ODE_model!
-		phet_sols_1, phet_sols_2, phet_sols_3 = [], [], []
-	elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
-		phet_sols_1, phet_sols_2 = [], [], []
-	elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
-		phet_sols_1, phet_sols_2, phet_sols_3 = [], [], []
-	elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
-		phet_sols_1, phet_sols_2, phet_sols_3, phet_sols_4 = [], [], [], []
-	else
-	end
-    # generate RBS bounds :: RBS is degined as the ratio kb/ku
-    kb_rng = exp10.(range(RBS_bounds[2], RBS_bounds[3], length = range_size))
-    ku_rng = reverse(exp10.(range(RBS_bounds[1], RBS_bounds[2], length = range_size)))
+Helper function to convert a vector to matrix.
 
-    for (kbrep_v, kurep_v) in zip(kb_rng, ku_rng)
-        # assign kb and ku values for the heterologous reporter protein
-		if ode_problem_dict["model_def"] == HETER_ODE_model!
-			ode_problem_dict["parameters"][26], ode_problem_dict["parameters"][27] = kbrep_v, kurep_v
-		elseif ode_problem_dict["model_def"] == REPR_ODE_model!
-			ode_problem_dict["parameters"][26], ode_problem_dict["parameters"][27] = kbrep_v, kurep_v
-			ode_problem_dict["parameters"][29], ode_problem_dict["parameters"][30] = kbrep_v, kurep_v
-			ode_problem_dict["parameters"][32], ode_problem_dict["parameters"][33] = kbrep_v, kurep_v
-		elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
-			ode_problem_dict["parameters"][29], ode_problem_dict["parameters"][30] = kbrep_v, kurep_v
-		elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
-			ode_problem_dict["parameters"][32], ode_problem_dict["parameters"][33] = kbrep_v, kurep_v
-		elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
-			ode_problem_dict["parameters"][35], ode_problem_dict["parameters"][36] = kbrep_v, kurep_v
-		else
-			println("something went wrong ... check the model specified")
-		end
-
-        # define & solve the new ODE problem
-		sol = solve_ode_problem!(ode_problem_wrap = ode_problem_dict)
-
-		# calculate relevant rates
-		_, grate = calc_growth_rate!(sol = sol, kappa_ini = ode_problem_dict["parameters"][24], gmax = gmax, Kgamma = Kgamma, model_def = ode_problem_dict["model_def"])
-		het_expr_dict = calc_het_expr!(sol = sol, model_def = ode_problem_dict["model_def"])
-		complexes_dict = calc_ribo_content!(sol = sol, kappa_ini = ode_problem_dict["parameters"][24], model_def = ode_problem_dict["model_def"])
-
-		# CONDITIONALS
-        # push what we need
-		if ode_problem_dict["model_def"] == HETER_ODE_model!
-			push!(phet_sols_1, het_expr_dict["protein_1"])
-		elseif ode_problem_dict["model_def"] == REPR_ODE_model!
-			push!(phet_sols_1, het_expr_dict["protein_1"])
-			push!(phet_sols_2, het_expr_dict["protein_2"])
-			push!(phet_sols_3, het_expr_dict["protein_3"])
-
-		elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
-			push!(phet_sols_1, het_expr_dict["protein_1"])
-			push!(phet_sols_2, het_expr_dict["protein_2"])
-
-		elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
-			push!(phet_sols_1, het_expr_dict["protein_1"])
-			push!(phet_sols_2, het_expr_dict["protein_2"])
-			push!(phet_sols_3, het_expr_dict["protein_3"])
-
-		elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
-			push!(phet_sols_1, het_expr_dict["protein_1"])
-			push!(phet_sols_2, het_expr_dict["protein_2"])
-			push!(phet_sols_3, het_expr_dict["protein_3"])
-			push!(phet_sols_4, het_expr_dict["protein_4"])
-		else
-			println("something went wrong ...")
-		end
-        
-		#push!(phet_sols, het_expr)
-        push!(grate_sols, grate)
-	end
-
-	if ode_problem_dict["model_def"] == HETER_ODE_model!
-
-		het_protein_content = Dict("protein_1" => phet_sols_1)
-
-	elseif ode_problem_dict["model_def"] == REPR_ODE_model!
-		
-		het_protein_content = Dict("protein_1" => phet_sols_1,
-								   "protein_2" => phet_sols_2,
-								   "protein_3" => phet_sols_3)	
-
-	elseif ode_problem_dict["model_def"] == NOT_gate_ODE_model!
-
-		het_protein_content = Dict("protein_1" => phet_sols_1,
-								   "protein_2" => phet_sols_2)	
-
-	elseif ode_problem_dict["model_def"] == AND_gate_ODE_model!
-
-		het_protein_content = Dict("protein_1" => phet_sols_1,
-								   "protein_2" => phet_sols_2,
-								   "protein_3" => phet_sols_3)	
-
-	elseif ode_problem_dict["model_def"] == NAND_gate_ODE_model!
-
-		het_protein_content = Dict("protein_1" => phet_sols_1,
-								   "protein_2" => phet_sols_2,
-								   "protein_3" => phet_sols_3,
-								   "protein_4" => phet_sols_4)	
-	else
-		println("something went wrong ...")
-	end
-
-
-    #return phet_sols, grate_sols, ttrate_sols, biomass_sols
-	return het_protein_content, grate_sols
-end
-
+Created by Evangelos-Marios Nikolados.
+"""
 function vector_to_matrix(vector)
     return reduce(hcat, vector)
 end
 
+"""
+	save_figure
+
+Helper function to save a generated figure at the specified path.
+
+Created by Evangelos-Marios Nikolados.
+"""
 function save_figure(; img_to_sv, model_def, custom_suffix = "", path_to_sv = "./figures/")
     if custom_suffix == ""
         savefig(img_to_sv, sv_path * string(model_def)[1:end-11] * "_" * string(length(readdir(path_to_sv))+1))
