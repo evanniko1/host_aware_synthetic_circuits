@@ -219,6 +219,7 @@ T = data["T"]  # shape (T,)
 ```
 
 This makes it straightforward to plug the host-aware synthetic datasets into sequence models that expect `(batch, time, features)` tensors.
+
 ---
 
 ## Reproducing thesis figures
