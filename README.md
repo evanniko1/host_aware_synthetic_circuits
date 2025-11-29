@@ -12,14 +12,17 @@ Heterologous gene expression draws resources from host cells. These resources in
 
 This repo implements computational models that integrate gene circuits into the physiology of *Escherichia coli* host cells and is organized as follows: :contentReference[oaicite:0]{index=0}
 
-- `driver.jl` is a playground for the user;
-- `helper.jl` contains all necessary helper functions to solve the ODEs, extract solutions, and run parameter sweeps;
-- `host_aware_models.jl` contains the definitions for each ODE system, *i.e.* an inducible reporter gene, the NOT, AND, and NAND gates — as a bonus this also includes a repressilator system; in all cases the code contains the $\kappa_{\mathrm{ini}}$ parameter that can be used to control the efficiency of translation initiation, as presented in Chapter 3;
-- `values.jl` contains the steady state values for a host cell that does not include the heterologous constructs introduced in this work — the steady state values are used as initial conditions for the host-aware models;
-- `thesis_figures.jl` contains all necessary code and parameter values to reproduce the results presented in Chapters 2 and 3 of the thesis;
-- `./figures/` contains figures for the main results of Chapters 2 and 3.
+- `driver.jl` — interactive playground;
+- `helper.jl` — ODE solving, postprocessing, parameter sweep utilities;
+- `host_aware_models.jl` — ODE systems for host-aware circuits (reporter, NOT, AND, NAND, repressilator);
+- `values.jl` — host-only steady state used as initial condition for host-aware models;
+- `thesis_figures.jl` — code and parameters to reproduce thesis figures;
+- `synthetic_dataset_generator.jl` — circuit-agnostic sampler + trajectory generator with optional config-driven parameter ranges;
+- `run_from_config.jl` — CLI wrapper to generate datasets from a YAML config, including Python-friendly .npz export in a dedicated output directory;
+- `config.yaml` — example configuration for dataset generation;
+- `figures/` — saved figures for the main results of Chapters 2 and 3;
+- `generated_datasets/` — (created at runtime) JLD2/NPZ files produced by dataset generation scripts.
 
----
 
 ## Julia environment
 
@@ -45,54 +48,43 @@ Pkg.add([
     "YAML",
     "NPZ",
 ])
-This will create/use a Project.toml in the repository and install the required Julia packages into that environment.
+```
 
-Synthetic dataset generation
+## Synthetic dataset generation
 
-In addition to the original host-aware models, this repository now includes a config-driven synthetic dataset generator that can be used to create high-dimensional time-series datasets for Koopman autoencoders, attention-free transformers, and related models.
+In addition to the original host-aware models, this repository now includes a config-driven synthetic dataset generator that can be used to create high-dimensional time-series datasets.
 
-Key files
+## Key files
 
-synthetic_dataset_generator.jl
+`synthetic_dataset_generator.jl`
 Core sampler + generator that:
-
-Samples design + environment parameters for each circuit,
-
-Simulates the corresponding ODE model,
+- Samples design + environment parameters for each circuit,
+- Simulates the corresponding ODE model,
 
 Returns:
+- `X :: Array{Float64,3}` of size `(N, T, D)` — all state variables over time;
+- `Z :: Array{Float64,2}` of size `(N, P)` — design + environment features;
+- `T_GRID :: Vector{Float64}` — the common time grid.
 
-X :: Array{Float64,3} of size (N, T, D) — all state variables over time;
-
-Z :: Array{Float64,2} of size (N, P) — design + environment features;
-
-T_GRID :: Vector{Float64} — the common time grid.
-
-run_from_config.jl
+`run_from_config.jl`
 CLI wrapper that:
+- Reads a YAML config (config.yaml),
+- Builds a sampling configuration per model,
+- Calls `generate_dataset(...)`,
+- Saves both a .jld2 file and a Python-friendly .npz file in a dedicated output directory.
 
-Reads a YAML config (config.yaml),
-
-Builds a sampling configuration per model,
-
-Calls generate_dataset(...),
-
-Saves both a .jld2 file and a Python-friendly .npz file in a dedicated output directory.
-
-config.yaml
+`config.yaml`
 Example configuration that specifies:
+- Which model to use (HETER, REPR, NOT, AND, NAND),
+- Number of trajectories, RNG seed, and output directory,
+- Optional parameter ranges for sampling (per model, per parameter).
 
-Which model to use (HETER, REPR, NOT, AND, NAND),
-
-Number of trajectories, RNG seed, and output directory,
-
-Optional parameter ranges for sampling (per model, per parameter).
-
-Usage
+## Usage
 1. Direct Julia REPL / script usage
 
 You can call the generator directly from Julia using any of the ODE models:
 
+```julia
 include("synthetic_dataset_generator.jl")
 
 # Example: AND gate
@@ -103,15 +95,16 @@ X, Z = generate_dataset(
     seed         = 1,
     sampling_cfg = nothing,  # or a ModelSamplingConfig if you build one manually
 )
+```
 
-
-This writes and_10.jld2 in the current directory and returns (X, Z) in memory.
+This writes `and_10.jld2` in the current directory and returns `(X, Z)` in memory.
 
 2. Config-driven CLI workflow
 
 The recommended workflow is to drive everything from a YAML config.
 
-Example config.yaml
+Example `config.yaml`
+```julia
 dataset_name: and_koopman_example
 model: AND
 N: 200
@@ -194,7 +187,7 @@ params:
       dist: linear
       min: 1.0
       max: 4.0
-
+```
 
 Any parameter not listed under params.<MODEL> falls back to the default ranges used in the original thesis simulations.
 
@@ -202,8 +195,7 @@ Running from the command line
 
 From the repository root:
 
-julia run_from_config.jl config.yaml
-
+`julia run_from_config.jl config.yaml`
 
 This will:
 
@@ -217,8 +209,9 @@ generated_datasets/and_200.npz
 
 Python integration
 
-The .npz files generated by run_from_config.jl are directly usable from Python:
+The `.npz` files generated by `run_from_config.jl` are directly usable from Python:
 
+```python
 import numpy as np
 
 data = np.load("generated_datasets/and_200.npz")
@@ -226,48 +219,20 @@ data = np.load("generated_datasets/and_200.npz")
 X = data["X"]  # shape (N, T, D)
 Z = data["Z"]  # shape (N, P)
 T = data["T"]  # shape (T,)
+```
 
+This makes it straightforward to plug the host-aware synthetic datasets into sequence models that expect `(batch, time, features)` tensors.
 
-This makes it straightforward to plug the host-aware synthetic datasets into:
-
-Koopman autoencoders,
-
-Attention-free transformers (with or without re-encoding),
-
-Other sequence models that expect (batch, time, features) tensors.
-
-Reproducing thesis figures
+## Reproducing thesis figures
 
 To reproduce the main figures from Chapters 2 and 3, use:
 
+```julia
 include("thesis_figures.jl")
 # call the corresponding figure-generation routines as documented in that file
+```
 
-
-See thesis_figures.jl for details on each figure and the specific parameter settings used in the thesis.
-
-Repository structure (extended)
-
-driver.jl — interactive playground;
-
-helper.jl — ODE solving, postprocessing, parameter sweep utilities;
-
-host_aware_models.jl — ODE systems for host-aware circuits (reporter, NOT, AND, NAND, repressilator);
-
-values.jl — host-only steady state used as initial condition for host-aware models;
-
-thesis_figures.jl — code and parameters to reproduce thesis figures;
-
-synthetic_dataset_generator.jl — circuit-agnostic sampler + trajectory generator with optional config-driven parameter ranges;
-
-run_from_config.jl — CLI wrapper to generate datasets from a YAML config, including Python-friendly .npz export in a dedicated output directory;
-
-config.yaml — example configuration for dataset generation;
-
-figures/ — saved figures for the main results of Chapters 2 and 3;
-
-generated_datasets/ — (created at runtime) JLD2/NPZ files produced by dataset generation scripts.
-
+See `thesis_figures.jl` for details on each figure and the specific parameter settings used in the thesis.
 
 ---
 
