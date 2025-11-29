@@ -201,8 +201,8 @@ From the repository root:
 This will:
 - Simulate `N` trajectories for the selected model,
 - Write:
-    - generated_datasets/and_200.jld2
-    - generated_datasets/and_200.npz
+    - `generated_datasets/and_200.jld2`
+    - `generated_datasets/and_200.npz`
 ---
 
 ## Python integration
