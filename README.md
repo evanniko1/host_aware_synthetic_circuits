@@ -10,7 +10,7 @@ Heterologous gene expression draws resources from host cells. These resources in
  
 </div>
 
-This repo implements computational models that integrate gene circuits into the physiology of *Escherichia coli* host cells and is organized as follows: :contentReference[oaicite:0]{index=0}
+This repo implements computational models that integrate gene circuits into the physiology of *Escherichia coli* host cells and is organized as follows:
 
 - `driver.jl` — interactive playground;
 - `helper.jl` — ODE solving, postprocessing, parameter sweep utilities;
@@ -47,6 +47,7 @@ Pkg.add([
     "JLD2",
     "YAML",
     "NPZ",
+    "Plots",
 ])
 ```
 ---
@@ -106,7 +107,7 @@ This writes `and_10.jld2` in the current directory and returns `(X, Z)` in memor
 The recommended workflow is to drive everything from a YAML config.
 
 Example `config.yaml`
-```julia
+```yaml
 dataset_name: and_koopman_example
 model: AND
 N: 200
