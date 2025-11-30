@@ -64,9 +64,17 @@ Core sampler + generator that:
 - Simulates the corresponding ODE model,
 
 Returns:
-- `X :: Array{Float64,3}` of size `(N, T, D)` — all state variables over time;
-- `Z :: Array{Float64,2}` of size `(N, P)` — design + environment features;
-- `T_GRID :: Vector{Float64}` — the common time grid.
+
+- `generate_dataset(model_def, N; ...)`  
+  Returns `(X, Z)` where:
+  - `X :: Array{Float64,3}` of size `(N, T, D)` — all state variables over time;
+  - `Z :: Array{Float64,2}` of size `(N, P)` — design + environment features.
+
+- `generate_dataset_with_time(model_def, N; ...)`  
+  Returns `(X, Z, T)` where:
+  - `T :: Vector{Float64}` — the common time grid used for all trajectories.
+
+In both cases, the JLD2 file also stores `T_GRID` internally.
 
 `run_from_config.jl`
 CLI wrapper that:
@@ -121,6 +129,14 @@ python_format: npz
 
 # JLD2 filename (inside output_dir)
 outfile: and_200.jld2
+
+# Time grid for the simulation
+time:
+  # Start and end time of the simulation
+  tspan: [0.0, 1.0e7]
+
+  # Number of time points in each trajectory
+  n_points: 200
 
 # Optional: sampling ranges for parameters of a given model
 params:
@@ -191,8 +207,7 @@ params:
       min: 1.0
       max: 4.0
 ```
-
-Any parameter not listed under params.<MODEL> falls back to the default ranges used in the original thesis simulations.
+The `time` block controls the simulation horizon (`tspan`) and the sequence length (`n_points` = length of `T` and the second axis of `X`). Any parameter not listed under params.<MODEL> falls back to the default ranges used in the original thesis simulations.
 
 ### Running from the command line
 
@@ -214,9 +229,11 @@ import numpy as np
 
 data = np.load("generated_datasets/and_200.npz")
 
-X = data["X"]  # shape (N, T, D)
-Z = data["Z"]  # shape (N, P)
-T = data["T"]  # shape (T,)
+X = data["X"]      # shape (N, T, D)
+Z = data["Z"]      # shape (N, P)
+T = data["T"]      # shape (T,)
+N = int(data["N"]) # number of trajectories
+t0, t1 = data["tspan"]
 ```
 
 This makes it straightforward to plug the host-aware synthetic datasets into sequence models that expect `(batch, time, features)` tensors.
