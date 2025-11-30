@@ -8,7 +8,7 @@
 # Outputs:
 #   X :: Array{Float64,3}  (N, T, D)  – all state variables over time
 #   Z :: Array{Float64,2}  (N, P)     – design+environment features
-#   T_GRID :: Vector{Float64}         – time grid
+#   (optionally) T :: Vector{Float64} – time grid
 #
 # Usage from CLI:
 #   julia synthetic_dataset_generator.jl AND 500 and_500.jld2 123
@@ -25,12 +25,11 @@ include("helper.jl")            # create_problem_dict!, solve_ode_problem!, ...
 include("host_aware_models.jl") # HETER_ODE_model!, REPR_ODE_model!, ...
 
 # ----------------------------
-# Global simulation settings
+# Global simulation defaults
 # ----------------------------
 
-const TSPAN  = (0.0, 1e7)
-const N_TIME = 200
-const T_GRID = range(TSPAN[1], TSPAN[2], length = N_TIME)
+const DEFAULT_TSPAN  = (0.0, 1e7)
+const DEFAULT_N_TIME = 200
 
 abstract type AbstractDesignEnv end
 
@@ -371,11 +370,11 @@ end
 sample_design_env(model_def::Function) = sample_design_env(model_def, nothing)
 
 # ----------------------------
-# Problem construction per model
+# Problem construction per model (tspan-aware)
 # ----------------------------
 
 # HETER
-function build_problem(::typeof(HETER_ODE_model!), des::HeterDesignEnv)
+function build_problem(::typeof(HETER_ODE_model!), des::HeterDesignEnv, tspan::Tuple{Float64,Float64})
     p_local = copy(p)
     het_p = [
         des.ns, dmrep, dprep, des.kappa_ini,
@@ -389,7 +388,7 @@ function build_problem(::typeof(HETER_ODE_model!), des::HeterDesignEnv)
         model_choice  = HETER_ODE_model!,
         init_values   = u0_local,
         params_values = p_local,
-        tspan         = TSPAN,
+        tspan         = tspan,
         ode_solver    = Rodas4(autodiff = false),
         abstol        = 1e-8,
         reltol        = 1e-8,
@@ -399,7 +398,7 @@ function build_problem(::typeof(HETER_ODE_model!), des::HeterDesignEnv)
 end
 
 # REPR
-function build_problem(::typeof(REPR_ODE_model!), des::ReprDesignEnv)
+function build_problem(::typeof(REPR_ODE_model!), des::ReprDesignEnv, tspan::Tuple{Float64,Float64})
     p_local = copy(p)
     het_p = [
         des.ns, dmrep, dprep, des.kappa_ini,
@@ -421,7 +420,7 @@ function build_problem(::typeof(REPR_ODE_model!), des::ReprDesignEnv)
         model_choice  = REPR_ODE_model!,
         init_values   = u0_local,
         params_values = p_local,
-        tspan         = TSPAN,
+        tspan         = tspan,
         ode_solver    = Rodas4(autodiff = false),
         abstol        = 1e-8,
         reltol        = 1e-8,
@@ -431,7 +430,7 @@ function build_problem(::typeof(REPR_ODE_model!), des::ReprDesignEnv)
 end
 
 # NOT
-function build_problem(::typeof(NOT_gate_ODE_model!), des::NotDesignEnv)
+function build_problem(::typeof(NOT_gate_ODE_model!), des::NotDesignEnv, tspan::Tuple{Float64,Float64})
     p_local = copy(p)
     het_p = [
         des.ns, dmrep, dprep, des.kappa_ini,
@@ -450,7 +449,7 @@ function build_problem(::typeof(NOT_gate_ODE_model!), des::NotDesignEnv)
         model_choice  = NOT_gate_ODE_model!,
         init_values   = u0_local,
         params_values = p_local,
-        tspan         = TSPAN,
+        tspan         = tspan,
         ode_solver    = Rodas4(autodiff = false),
         abstol        = 1e-8,
         reltol        = 1e-8,
@@ -460,7 +459,7 @@ function build_problem(::typeof(NOT_gate_ODE_model!), des::NotDesignEnv)
 end
 
 # AND
-function build_problem(::typeof(AND_gate_ODE_model!), des::AndDesignEnv)
+function build_problem(::typeof(AND_gate_ODE_model!), des::AndDesignEnv, tspan::Tuple{Float64,Float64})
     p_local = copy(p)
     het_p = [
         des.ns, dmrep, dprep, des.kappa_ini,
@@ -481,7 +480,7 @@ function build_problem(::typeof(AND_gate_ODE_model!), des::AndDesignEnv)
         model_choice  = AND_gate_ODE_model!,
         init_values   = u0_local,
         params_values = p_local,
-        tspan         = TSPAN,
+        tspan         = tspan,
         ode_solver    = Rodas4(autodiff = false),
         abstol        = 1e-8,
         reltol        = 1e-8,
@@ -491,7 +490,7 @@ function build_problem(::typeof(AND_gate_ODE_model!), des::AndDesignEnv)
 end
 
 # NAND
-function build_problem(::typeof(NAND_gate_ODE_model!), des::NandDesignEnv)
+function build_problem(::typeof(NAND_gate_ODE_model!), des::NandDesignEnv, tspan::Tuple{Float64,Float64})
     p_local = copy(p)
     het_p = [
         des.ns, dmrep, dprep, des.kappa_ini,
@@ -514,7 +513,7 @@ function build_problem(::typeof(NAND_gate_ODE_model!), des::NandDesignEnv)
         model_choice  = NAND_gate_ODE_model!,
         init_values   = u0_local,
         params_values = p_local,
-        tspan         = TSPAN,
+        tspan         = tspan,
         ode_solver    = Rodas4(autodiff = false),
         abstol        = 1e-8,
         reltol        = 1e-8,
@@ -524,17 +523,22 @@ function build_problem(::typeof(NAND_gate_ODE_model!), des::NandDesignEnv)
 end
 
 # ----------------------------
-# Common simulation logic
+# Common simulation logic (tspan + grid)
 # ----------------------------
 
-function simulate_trajectory(model_def::Function, des::AbstractDesignEnv)
-    ode_dict = build_problem(model_def, des)
+function simulate_trajectory(
+    model_def::Function,
+    des::AbstractDesignEnv,
+    tspan::Tuple{Float64,Float64},
+    t_grid,
+)
+    ode_dict = build_problem(model_def, des, tspan)
     sol      = solve_ode_problem!(ode_problem_wrap = ode_dict)
 
     D = length(sol.u[end])
-    X = Array{Float64}(undef, length(T_GRID), D)
+    X = Array{Float64}(undef, length(t_grid), D)
 
-    for (i, t) in enumerate(T_GRID)
+    for (i, t) in enumerate(t_grid)
         X[i, :] = sol(t)
     end
     return X
@@ -612,21 +616,101 @@ function encode_design_env(::typeof(NAND_gate_ODE_model!), des::NandDesignEnv)
 end
 
 # ----------------------------
-# Generic dataset generator
+# Z feature names per model (for metadata)
 # ----------------------------
 
-function generate_dataset(
+function z_feature_names(::typeof(HETER_ODE_model!))
+    [
+        "log10(ns)",
+        "log10(kappa_ini)",
+        "log10(wmaxrep)",
+        "log10(kbrep)",
+        "log10(kurep)",
+    ]
+end
+
+function z_feature_names(::typeof(REPR_ODE_model!))
+    [
+        "log10(ns)",
+        "log10(kappa_ini)",
+
+        "log10(wmaxrep_1)", "log10(kbrep_1)", "log10(kurep_1)",
+        "log10(wmaxrep_2)", "log10(kbrep_2)", "log10(kurep_2)",
+        "log10(wmaxrep_3)", "log10(kbrep_3)", "log10(kurep_3)",
+
+        "log10(Kq_rep_1)", "nq_rep_1",
+        "log10(Kq_rep_2)", "nq_rep_2",
+        "log10(Kq_rep_3)", "nq_rep_3",
+    ]
+end
+
+function z_feature_names(::typeof(NOT_gate_ODE_model!))
+    [
+        "log10(ns)",
+        "log10(kappa_ini)",
+
+        "log10(wmaxrep_1)", "log10(kbrep_1)", "log10(kurep_1)",
+        "log10(wmaxrep_2)", "log10(kbrep_2)", "log10(kurep_2)",
+
+        "log10(Kq_rep_1)", "nq_rep_1",
+    ]
+end
+
+function z_feature_names(::typeof(AND_gate_ODE_model!))
+    [
+        "log10(ns)",
+        "log10(kappa_ini)",
+
+        "log10(wmaxrep_1)", "log10(kbrep_1)", "log10(kurep_1)",
+        "log10(wmaxrep_2)", "log10(kbrep_2)", "log10(kurep_2)",
+        "log10(wmaxrep_3)", "log10(kbrep_3)", "log10(kurep_3)",
+
+        "log10(Kq_rep_1)", "nq_rep_1",
+        "log10(Kq_rep_2)", "nq_rep_2",
+    ]
+end
+
+function z_feature_names(::typeof(NAND_gate_ODE_model!))
+    [
+        "log10(ns)",
+        "log10(kappa_ini)",
+
+        "log10(wmaxrep_1)", "log10(kbrep_1)", "log10(kurep_1)",
+        "log10(wmaxrep_2)", "log10(kbrep_2)", "log10(kurep_2)",
+        "log10(wmaxrep_3)", "log10(kbrep_3)", "log10(kurep_3)",
+        "log10(wmaxrep_4)", "log10(kbrep_4)", "log10(kurep_4)",
+
+        "log10(Kq_rep_1)", "nq_rep_1",
+        "log10(Kq_rep_2)", "nq_rep_2",
+        "log10(Kq_rep_3)", "nq_rep_3",
+    ]
+end
+
+# Fallback (should never be used if MODEL_DICT is consistent)
+function z_feature_names(model_def::Function)
+    error("No z_feature_names defined for model $(model_def).")
+end
+
+# ----------------------------
+# Internal dataset generator (returns X, Z, T)
+# ----------------------------
+
+function _generate_dataset(
     model_def::Function,
     N::Int;
     outfile::AbstractString = "synthetic_dataset.jld2",
     seed::Int = 42,
     sampling_cfg::Union{Nothing,ModelSamplingConfig} = nothing,
+    tspan::Tuple{Float64,Float64} = DEFAULT_TSPAN,
+    n_time::Int = DEFAULT_N_TIME,
 )
     Random.seed!(seed)
 
+    t_grid = collect(range(tspan[1], tspan[2], length = n_time))
+
     # First sample fixes shapes
     des1 = sample_design_env(model_def, sampling_cfg)
-    X1   = simulate_trajectory(model_def, des1)
+    X1   = simulate_trajectory(model_def, des1, tspan, t_grid)
     T, D = size(X1)
     P    = length(encode_design_env(model_def, des1))
 
@@ -640,7 +724,7 @@ function generate_dataset(
     while n <= N
         try
             des  = sample_design_env(model_def, sampling_cfg)
-            traj = simulate_trajectory(model_def, des)
+            traj = simulate_trajectory(model_def, des, tspan, t_grid)
 
             X[n, :, :] .= traj
             Z[n, :]    .= encode_design_env(model_def, des)
@@ -650,9 +734,43 @@ function generate_dataset(
         end
     end
 
-    @save outfile X Z T_GRID
+    # Store T_GRID as `T_GRID` in JLD2 for backward compatibility
+    @save outfile X Z T_GRID=t_grid
     println("Saved dataset for $(model_def) with size: X=$(size(X)), Z=$(size(Z)) to '$outfile'")
+
+    return X, Z, t_grid
+end
+
+# ----------------------------
+# Public API
+# ----------------------------
+
+"""
+    generate_dataset(model_def, N; kwargs...) -> X, Z
+
+Backwards-compatible API: returns only X and Z, using any given kwargs
+(outfile, seed, sampling_cfg, tspan, n_time).
+"""
+function generate_dataset(
+    model_def::Function,
+    N::Int;
+    kwargs...
+)
+    X, Z, _ = _generate_dataset(model_def, N; kwargs...)
     return X, Z
+end
+
+"""
+    generate_dataset_with_time(model_def, N; kwargs...) -> X, Z, T
+
+Full API: returns X, Z, and the time grid T.
+"""
+function generate_dataset_with_time(
+    model_def::Function,
+    N::Int;
+    kwargs...
+)
+    return _generate_dataset(model_def, N; kwargs...)
 end
 
 # ----------------------------
@@ -680,5 +798,7 @@ if abspath(PROGRAM_FILE) == @__FILE__
     end
 
     model_def = MODEL_DICT[model_name]
+
+    # CLI uses default tspan / n_time and the backwards-compatible API
     generate_dataset(model_def, N; outfile = outfile, seed = seed)
 end

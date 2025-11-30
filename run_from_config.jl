@@ -15,6 +15,10 @@
 #   output_dir     :: String (optional, default = "generated_datasets")
 #   python_format  :: String (optional, "npz" or "none"; default "npz")
 #
+#   time:          :: Dict (optional)
+#     tspan: [t0, t1]     (optional, default = DEFAULT_TSPAN)
+#     n_points: Int       (optional, default = DEFAULT_N_TIME)
+#
 #   params:        :: Dict (optional)
 #     <MODEL>:
 #       <param_name>:
@@ -26,7 +30,7 @@
 using YAML
 using NPZ
 
-# Bring in the generator, MODEL_DICT, and config types
+# Bring in the generator, MODEL_DICT, config types, and helpers
 include("synthetic_dataset_generator.jl")
 
 # ----------------------------
@@ -108,6 +112,21 @@ if abspath(PROGRAM_FILE) == @__FILE__
     output_dir   = get(cfg, "output_dir", "generated_datasets")
     python_fmt   = get(cfg, "python_format", "npz")  # "npz" or "none"
 
+    # Time configuration (optional)
+    time_cfg = get(cfg, "time", nothing)
+    tspan = DEFAULT_TSPAN
+    n_time = DEFAULT_N_TIME
+
+    if time_cfg !== nothing
+        # Expect tspan: [t0, t1]
+        tspan_vec = get(time_cfg, "tspan", [tspan[1], tspan[2]])
+        if length(tspan_vec) != 2
+            error("Config 'time.tspan' must be a 2-element array [t0, t1].")
+        end
+        tspan = (Float64(tspan_vec[1]), Float64(tspan_vec[2]))
+        n_time = Int(get(time_cfg, "n_points", n_time))
+    end
+
     # derive default outfile (JLD2) if not provided
     outfile_cfg  = get(cfg, "outfile", "$(lowercase(dataset_name)).jld2")
     outfile_base = String(outfile_cfg)
@@ -140,27 +159,41 @@ if abspath(PROGRAM_FILE) == @__FILE__
     println("  output_dir   = $output_dir")
     println("  jld2_outfile = $jld_path")
     println("  python_fmt   = $python_fmt")
+    println("  tspan        = $tspan")
+    println("  n_time       = $n_time")
 
-    X, Z = generate_dataset(
+    # Generate data with explicit time grid
+    X, Z, T = generate_dataset_with_time(
         model_def,
         N;
         outfile      = jld_path,
         seed         = seed,
         sampling_cfg = sampling_cfg,
+        tspan        = tspan,
+        n_time       = n_time,
     )
 
+    # Names for Z (design/env features); currently only used on the Julia side
+    z_names = z_feature_names(model_def)
+
     if lowercase(python_fmt) == "npz"
-        # Export Python-friendly NPZ
+        # Export Python-friendly NPZ (numeric-only; NPZ.jl does not support String arrays)
         # Python usage:
         #   import numpy as np
-        #   data = np.load("path/to/file.npz")
-        #   X = data["X"]; Z = data["Z"]; T = data["T"]
+        #   data  = np.load("path/to/file.npz")
+        #   X     = data["X"]      # (N, T, D)
+        #   Z     = data["Z"]      # (N, P)
+        #   T     = data["T"]      # (T,)
+        #   N     = int(data["N"])
+        #   tspan = data["tspan"]  # array([t0, t1])
         NPZ.npzwrite(
             npz_path,
             Dict(
-                "X" => X,
-                "Z" => Z,
-                "T" => collect(T_GRID),
+                "X"     => X,
+                "Z"     => Z,
+                "T"     => T,
+                "N"     => N,
+                "tspan" => [tspan[1], tspan[2]],
             ),
         )
         println("Also wrote Python-compatible NPZ to '$npz_path'")

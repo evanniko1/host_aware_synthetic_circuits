@@ -1,4 +1,4 @@
-dataset_name: and_kooopman_example
+dataset_name: and_koopman_example
 model: AND
 N: 200
 seed: 123
@@ -12,6 +12,14 @@ python_format: npz   # or "none" to skip
 # JLD2 filename inside output_dir
 outfile: and_200.jld2
 
+# Time grid for the simulations
+time:
+  # Start and end time of the simulation
+  tspan: [0.0, 1.0e7]
+
+  # Number of time points in the trajectory (length of T and the second axis of X)
+  n_points: 200
+
 # Optional: sampling ranges per model / parameter
 params:
   AND:
@@ -19,6 +27,7 @@ params:
       dist: linear
       min: 0.1
       max: 1.0
+
     kappa_ini:
       dist: log10
       min: -0.65
